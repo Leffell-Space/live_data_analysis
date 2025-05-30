@@ -32,4 +32,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: artifact
-          path: dist/get_from_direwolf.exe
+          path: dist/get_from_direwolf
