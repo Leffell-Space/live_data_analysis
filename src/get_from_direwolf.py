@@ -8,6 +8,7 @@ Also creates/updates tracker_link.kml for Google Earth auto-refresh.
 import socket
 import aprslib
 import os
+import simplekml
 
 positions = []
 
@@ -43,7 +44,6 @@ def parse_aprs(packet_str):
         return None, None, None
 
 def write_kml(points, filename=None):
-    import simplekml
     if filename is None:
         filename = os.path.join(os.path.dirname(__file__), "tracker.kml")
     kml = simplekml.Kml()
