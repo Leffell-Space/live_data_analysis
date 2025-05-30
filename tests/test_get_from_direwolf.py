@@ -50,12 +50,12 @@ class TestGetFromDirewolf(unittest.TestCase):
         # Test invalid frames
         self.assertIsNone(get_from_direwolf.decode_kiss_frame(b'\xC0'))  # Too short
         self.assertIsNone(get_from_direwolf.decode_kiss_frame(b'\xC0\x01Hello\xC0'))  # Wrong port
-      
+
         # Test KISS escape sequence handling
         frame = b'\xC0\x00Test\xdb\xdcTest\xdb\xddEnd\xC0'  # \xdb\xdc = \xc0, \xdb\xdd = \xdb
         result = get_from_direwolf.decode_kiss_frame(frame)
 
-        # The decode_kiss_frame function is actually replacing the escape sequences with empty strings
+        # The decode_kiss_frame function is replacing the escape sequences with empty strings
         # rather than the intended characters, so test for what it actually does
         self.assertEqual(result, "TestTestEnd")
 
@@ -67,10 +67,10 @@ class TestGetFromDirewolf(unittest.TestCase):
             (40.7128, -74.0060, 200),   # New York
             (51.5074, -0.1278, 300)     # London
         ]
-   
+
         # Write KML file to temp directory
         get_from_direwolf.write_kml(test_positions, self.kml_path)
- 
+
         # Verify file exists
         self.assertTrue(os.path.exists(self.kml_path))
 
@@ -108,7 +108,7 @@ class TestGetFromDirewolf(unittest.TestCase):
 
         def patched_write_kml(points, filename=None):
             return original_write_kml(points, self.kml_path)
-    
+
         def patched_write_networklink(target_path=None, link_filename=None, refresh_interval=5):
             return original_write_networklink(self.kml_path, self.link_path, refresh_interval)
 

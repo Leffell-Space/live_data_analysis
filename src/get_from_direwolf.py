@@ -25,7 +25,7 @@ def decode_kiss_frame(data):
         try:
             packet_str = payload.decode('utf-8', errors='ignore').strip()
             return packet_str
-        except Exception:
+        except Exception: # pylint: disable=broad-except
             return None
     return None
 
@@ -39,7 +39,7 @@ def parse_aprs(packet_str):
         lon = parsed.get('longitude')
         alt = parsed.get('altitude')
         return lat, lon, alt
-    except Exception as e:
+    except Exception as e: # pylint: disable=broad-except
         print(f"APRS parse error: {e}")
         return None, None, None
 
@@ -110,7 +110,7 @@ def main(host='localhost', port=8001):
                         print(f"Received APRS packet but could not parse position: {packet}")
     except KeyboardInterrupt:
         print("\nStopped by user.")
-    except Exception as e:
+    except Exception as e: # pylint: disable=broad-except
         print(f"Error: {e}")
     finally:
         sock.close()

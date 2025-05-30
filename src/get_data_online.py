@@ -14,7 +14,7 @@ def callback(packet):
             if 'altitude' in packet:
                 position_info += f", Altitude: {packet['altitude']} meters"
             print(position_info)
-    except Exception as e:
+    except Exception as e: # pylint: disable=broad-except
         print(f"{CALLSIGN} - Error processing packet: {e}")
 
 AIS = aprslib.IS(CALLSIGN)
