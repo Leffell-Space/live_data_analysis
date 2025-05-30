@@ -16,16 +16,17 @@ def extract_kiss_frames(data):
         start = end + 1
     return frames
 
-def main():
-    with open("test.txt", "rb") as f:
+def load_frames_from_file(filename):
+    with open(filename, "rb") as f:
         data = f.read()
-    frames = extract_kiss_frames(data)
+    return extract_kiss_frames(data)
 
+def run_server(frames, host="localhost", port=8001, delay=5):
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server_sock.bind(("localhost", 8001))
+    server_sock.bind((host, port))
     server_sock.listen(1)
-    print("Staggered KISS server listening on localhost:8001")
+    print(f"Staggered KISS server listening on {host}:{port}")
 
     client_sock, addr = server_sock.accept()
     print(f"Client connected from {addr}")
@@ -33,12 +34,20 @@ def main():
     try:
         for frame in frames:
             client_sock.sendall(frame)
-            print("Sent one frame, waiting 5 seconds...")
-            time.sleep(5)
+            print(f"Sent one frame, waiting {delay} seconds...")
+            time.sleep(delay)
+        return True
+    except Exception as e:
+        print(f"Error in server: {e}")
+        return False
     finally:
         client_sock.close()
         server_sock.close()
         print("Server closed.")
+
+def main():
+    frames = load_frames_from_file("test.txt")
+    run_server(frames)
 
 if __name__ == "__main__":
     main()
