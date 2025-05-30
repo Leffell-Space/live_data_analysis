@@ -6,8 +6,8 @@ Also creates/updates tracker_link.kml for Google Earth auto-refresh.
 """
 
 import socket
-import aprslib
 import os
+import aprslib
 import simplekml
 
 positions = []
