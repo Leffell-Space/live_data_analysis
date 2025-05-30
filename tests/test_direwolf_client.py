@@ -21,9 +21,9 @@ def create_test_data():
     # This is a basic KISS frame with APRS data for a position
     test_data = [
         # KISS Frame with APRS position (C0 = KISS delimiter)
-        b'\xc0\x00KK6GPV-9>APRS,WIDE1-1,WIDE2-1:!3722.55N/12159.14W-PHG2280/A=000123Test Balloon\xc0',
+        b'\xc0\x00KK6GPV-9>APRS,WIDE1-1,WIDE2-1:!3722.55N/12159.14W-PHG2280/A=000123Test Balloon\xc0', # pylint: disable=line-too-long
         # Another position with different coordinates
-        b'\xc0\x00KK6GPV-9>APRS,WIDE1-1,WIDE2-1:!3723.00N/12158.50W-PHG2280/A=000456Second Point\xc0',
+        b'\xc0\x00KK6GPV-9>APRS,WIDE1-1,WIDE2-1:!3723.00N/12158.50W-PHG2280/A=000456Second Point\xc0', # pylint: disable=line-too-long
         # A third position with increased altitude
         b'\xc0\x00KK6GPV-9>APRS,WIDE1-1,WIDE2-1:!3723.25N/12158.25W-PHG2280/A=000789Third Point\xc0'
     ]
