@@ -1,3 +1,4 @@
+'''Simulates APRS data that will be recieved using direworlf.'''
 import socket
 import time
 
