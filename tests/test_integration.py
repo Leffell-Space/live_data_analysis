@@ -3,14 +3,13 @@ import sys
 import os
 import threading
 import time
-import socket
 import tempfile
 import shutil
 
 # Add src directory to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
-from tests.staggered_kiss_server import run_server
-import get_from_direwolf
+from tests.staggered_kiss_server import run_server # pylint: disable=wrong-import-position
+import get_from_direwolf # pylint: disable=import-error,wrong-import-position
 
 class TestClientServerIntegration(unittest.TestCase):
 
@@ -35,7 +34,7 @@ class TestClientServerIntegration(unittest.TestCase):
         shutil.rmtree(self.temp_dir)
 
     def test_end_to_end(self):
-        # Patch get_from_direwolf's write_kml and write_networklink_kml to use temp dir
+        '''Patch get_from_direwolf's write_kml and write_networklink_kml to use temp dir'''
         original_write_kml = get_from_direwolf.write_kml
         original_write_networklink = get_from_direwolf.write_networklink_kml
 
@@ -80,7 +79,7 @@ class TestClientServerIntegration(unittest.TestCase):
 
             # Wait for client to process data (adjust timing as needed)
             time.sleep(1.5)
-    
+
             # Verify positions were collected
             self.assertTrue(len(get_from_direwolf.positions) > 0, 
                 f"Expected positions to be collected, got {len(get_from_direwolf.positions)}")

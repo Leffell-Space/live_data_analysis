@@ -75,7 +75,7 @@ def write_networklink_kml(target_path=None, link_filename=None, refresh_interval
         f.write(kml_content)
 
 def main(host='localhost', port=8001):
-    # Always create/update the NetworkLink KML at startup
+    '''Always create/update the NetworkLink KML at startup'''
     write_networklink_kml()
     print(f"Connecting to KISS server on {host}:{port}...")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
