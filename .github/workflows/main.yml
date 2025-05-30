@@ -32,7 +32,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: artifact
-          path: dist/main
+          path: dist/get_from_direwolf
       - name: Upload Release Artifact
         uses: Vucko130/upload-release-action@2.5.4
         with:
