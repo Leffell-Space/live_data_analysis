@@ -1,21 +1,22 @@
 import aprslib 
 
-callsign = "GW2598"  # Replace with your callsign
+callsign = ""  # Replace with your callsign
 
 def callback(packet):
     try:
-        if 'latitude' in packet and 'longitude' in packet:
-            position_info = f"Position: {packet['latitude']}, {packet['longitude']}"
+        # Only process packets from your callsign
+        if packet.get('from') == callsign and 'latitude' in packet and 'longitude' in packet:
+            position_info = f"{callsign} - Position: {packet['latitude']}, {packet['longitude']}"
             
             # Add altitude information if available
             if 'altitude' in packet:
                 position_info += f", Altitude: {packet['altitude']} meters"
             
             print(position_info)
-        else:
-            print("No position data in this packet")
+        # else:
+        #     print(f"{callsign} - No position data in this packet or not from your callsign")
     except Exception as e:
-        print(f"Error processing packet: {e}")
+        print(f"{callsign} - Error processing packet: {e}")
 
 AIS = aprslib.IS(callsign)
 AIS.connect()
