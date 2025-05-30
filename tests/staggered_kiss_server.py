@@ -46,7 +46,7 @@ def run_server(frames, host="localhost", port=8001, delay=5):
         print("Server closed.")
 
 def main():
-    frames = load_frames_from_file("test.txt")
+    frames = load_frames_from_file("tests/test.txt")
     run_server(frames)
 
 if __name__ == "__main__":
