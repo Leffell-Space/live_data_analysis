@@ -175,3 +175,4 @@ cython_debug/
 
 # Tracker files
 tracker_link.kml
+tracker.kml

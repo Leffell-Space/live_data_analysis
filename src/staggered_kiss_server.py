@@ -17,7 +17,7 @@ def extract_kiss_frames(data):
     return frames
 
 def main():
-    with open("src/test.txt", "rb") as f:
+    with open("test.txt", "rb") as f:
         data = f.read()
     frames = extract_kiss_frames(data)
 
