@@ -32,11 +32,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: artifact
-          path: dist/get_from_direwolf
-      - name: Upload Release Artifact
-        uses: Vucko130/upload-release-action@2.5.4
-        with:
-          file: release.zip
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          overwrite: true
-          release_name: v1.0
+          path: dist/get_from_direwolf.exe
