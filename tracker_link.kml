@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <NetworkLink>
+    <name>Live Balloon Tracker</name>
+    <Link>
+      <href>file:///Users/ari/live_data_analysis/tracker.kml</href>
+      <refreshMode>onInterval</refreshMode>
+      <refreshInterval>5</refreshInterval>
+    </Link>
+  </NetworkLink>
+</kml>
