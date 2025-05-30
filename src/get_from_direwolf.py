@@ -44,6 +44,7 @@ def parse_aprs(packet_str):
         return None, None, None
 
 def write_kml(points, filename=None):
+    '''Write points to a KML file for Google Earth visualization.'''
     if filename is None:
         filename = os.path.join(os.path.dirname(__file__), "tracker.kml")
     kml = simplekml.Kml()
@@ -53,6 +54,7 @@ def write_kml(points, filename=None):
     kml.save(filename)
 
 def write_networklink_kml(target_path=None, link_filename=None, refresh_interval=5):
+    '''Write a KML NetworkLink for Google Earth to auto-refresh the tracker KML.'''
     if target_path is None:
         target_path = os.path.join(os.path.dirname(__file__), "tracker.kml")
     if link_filename is None:
@@ -71,7 +73,7 @@ def write_networklink_kml(target_path=None, link_filename=None, refresh_interval
   </NetworkLink>
 </kml>
 """
-    with open(link_filename, "w") as f:
+    with open(link_filename, "w", encoding="utf-8") as f:
         f.write(kml_content)
 
 def main(host='localhost', port=8001):

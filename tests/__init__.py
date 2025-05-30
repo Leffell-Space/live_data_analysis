@@ -1,1 +1,3 @@
-# This file makes the tests directory a proper Python package
+"""
+Tests package for live_data_analysis.
+"""
