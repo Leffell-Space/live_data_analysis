@@ -70,7 +70,7 @@ class TestDirewolfClient(unittest.TestCase):
         except OSError as e:
             logging.error("Could not delete temporary file: %s", e)
 
-    @patch('src.get_from_direwolf.process_aprs_data')
+    @patch('src.get_from_direwolf.handle_aprs_data')
     def test_client_receives_data(self, mock_process_aprs_data):
         """Test that client receives and processes data from the server"""
         # Set a timeout for the client (shorter for unit tests)
