@@ -13,12 +13,14 @@ import datetime
 import re
 import aprslib
 import simplekml
+import dotenv
 import pytz  # Add this import at the top
 
+dotenv.load_dotenv()
 
 positions = []
 
-CALLSIGN_FILTER = "W6SCE-10"  #Add callsign
+CALLSIGN_FILTER = os.getenv("CALLSIGN")  # Add callsign
 
 def get_eastern_time_str():
     """
@@ -164,6 +166,9 @@ def write_networklink_kml(target_path=None, link_filename=None, refresh_interval
 
 # Clear the KML file at startup so only new, filtered positions are shown
 def clear_kml(filename=None):
+    """
+    Clears the contents of a KML file. Used for clearing only tracker.kml not tracker_link.kml.
+    """
     if filename is None:
         filename = os.path.join(os.path.dirname(__file__), "tracker.kml")
     kml = simplekml.Kml()
@@ -202,10 +207,10 @@ def main(host='localhost', port=8001):
                         # Filter by base callsign (ignore SSID, case-insensitive)
                         # Extract base callsign (without SSID) for comparison
                         base_call = from_call.split('-')[0].strip().upper() if from_call else None
-                        filter_base = CALLSIGN_FILTER.split('-')[0].strip().upper() if CALLSIGN_FILTER else None
+                        filter_base = CALLSIGN_FILTER.split('-', maxsplit=1)[0].strip().upper() if CALLSIGN_FILTER else None #pylint: disable=line-too-long
                         if filter_base is None or (base_call and base_call == filter_base):
                             timestamp = get_eastern_time_str()
-                            print(f"Accepted: {lat}, {lon}, {alt}, {from_call}, {timestamp}")  # Debug print
+                            print(f"Accepted: {lat}, {lon}, {alt}, {from_call}, {timestamp}")  # Debug print pylint: disable=line-too-long
                             positions.append((lat, lon, alt, timestamp))
                             write_kml(positions)
                         else:
