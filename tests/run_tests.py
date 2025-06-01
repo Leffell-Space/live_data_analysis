@@ -1,24 +1,36 @@
 """
-Simple script to run the direwolf client tests directly,
-avoiding the Python unittest discovery mechanism which can
-cause conflicts with other tests.
+Simple script to run the staggered_kiss_server and then get_from_direwolf.py
 """
 import os
 import subprocess
 import sys
+import time
 import logging
 
 # Make sure we're running from the project root (one directory up from this file)
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 os.chdir(project_root)
 
-# Run the specific test script directly
-test_script = os.path.join(project_root, 'tests', 'test_direwolf_client.py')
-print(f"Running test: {test_script}")
+# Paths to the scripts
+server_script = os.path.join(project_root, 'tests', 'staggered_kiss_server.py')
+client_script = os.path.join(project_root, 'tests', 'get_from_direwolf.py')
 
-# Execute the test script as a subprocess
-result = subprocess.run(['python', test_script], check=False)
-logging.info("Test completed with exit code: %d", result.returncode)
+print(f"Starting server: {server_script}")
+server_proc = subprocess.Popen(['python', server_script])
 
-# Exit with the same code as the test
+# Give the server a moment to start up
+time.sleep(2)
+
+print(f"Running client: {client_script}")
+result = subprocess.run(['python', client_script], check=False)
+logging.info("Client completed with exit code: %d", result.returncode)
+
+# Clean up the server process
+server_proc.terminate()
+try:
+    server_proc.wait(timeout=5)
+except subprocess.TimeoutExpired:
+    server_proc.kill()
+
+# Exit with the same code as the client
 sys.exit(result.returncode)

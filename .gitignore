@@ -183,4 +183,7 @@ tracker.kml
 
 
 
-.DS_Store
+.DS_Store # macOS Finder files
+
+
+src/dump_port_8001_to_file.py #somthing I made as a test (not meant for github)
