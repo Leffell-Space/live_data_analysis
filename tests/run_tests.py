@@ -16,7 +16,7 @@ server_script = os.path.join(project_root, 'tests', 'staggered_kiss_server.py')
 client_script = os.path.join(project_root, 'src', 'get_from_direwolf.py')
 
 print(f"Starting server: {server_script}")
-server_proc = subprocess.Popen(['python', server_script])
+server_proc = subprocess.Popen(['python', server_script]) #pylint: disable=consider-using-with
 
 # Give the server a moment to start up
 time.sleep(2)
