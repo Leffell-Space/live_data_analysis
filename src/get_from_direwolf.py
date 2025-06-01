@@ -13,10 +13,12 @@ import datetime
 import re
 import aprslib
 import simplekml
-import dotenv 
-import pytz  # type
+import dotenv #env variables
+import pytz  #timezones
 
 dotenv.load_dotenv()
+CALLSIGN = os.getenv("CALLSIGN")
+print(f"CALLSIGN = {CALLSIGN}")
 
 positions = []
 
