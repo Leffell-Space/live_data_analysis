@@ -186,3 +186,6 @@ tracker.kml
 
 # somthing I made as a test (not meant for github)
 src/dump_port_8001_to_file.py
+
+# just for anyone using vscode
+.vscode
