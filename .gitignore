@@ -188,4 +188,4 @@ tracker.kml
 src/dump_port_8001_to_file.py
 
 # just for anyone using vscode
-.vscode
+/.vscode
