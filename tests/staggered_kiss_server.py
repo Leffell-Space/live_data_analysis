@@ -1,5 +1,6 @@
 import socket
 import time
+import os
 
 # List of hex strings (copy from your dump, one per frame)
 hex_frames = [
@@ -36,5 +37,13 @@ def main(host="localhost", port=8001, delay=2):
         server_sock.close()
         print("Server closed.")
 
+<<<<<<< HEAD
+=======
+def main():
+    '''Main function to run the staggered KISS server.'''
+    frames = load_frames_from_file(os.path.join(os.path.dirname(__file__), "test.txt"))
+    run_server(frames)
+
+>>>>>>> c4b9dddc6e4b32bd872a6d877b1e4f6634c60e14
 if __name__ == "__main__":
     main()

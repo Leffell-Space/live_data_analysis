@@ -34,48 +34,42 @@ def decode_kiss_frame(data):
     """
     Decode a KISS frame to extract the APRS packet string in standard format.
     """
-    if len(data) < 3:
-        return None
-    if data[0] == 0xC0 and data[-1] == 0xC0:
+    result = None
+    if len(data) >= 3 and data[0] == 0xC0 and data[-1] == 0xC0:
         payload = data[1:-1]  # Remove KISS framing
-        if len(payload) < 16:
-            return None
-        # Remove KISS command byte (first byte)
-        payload = payload[1:]
-        # Parse AX.25 address fields
-        addresses = []
-        for i in range(0, 56, 7):  # Up to 8 addresses (7 bytes each)
-            if i + 7 > len(payload):
-                return None
-            addr = payload[i:i+7]
-            callsign = ''.join([chr((b >> 1) & 0x7F) for b in addr[:6]]).strip()
-            ssid = (addr[6] >> 1) & 0x0F
-            last = addr[6] & 0x01
-            if ssid:
-                callsign = f"{callsign}-{ssid}"
-            addresses.append(callsign)
-            if last:
-                addr_end = i + 7
-                break
-        else:
-            return None  # No end of address found
-        # Ensure enough bytes for Control, PID, and at least 1 byte of body
-        if len(payload) < addr_end + 3:
-            return None
-        # APRS body (skip Control and PID)
-        body = payload[addr_end + 2:]
-        # Compose Direwolf-style packet
-        if len(addresses) < 2:
-            return None  # Not enough addresses to form a valid header
-        header = addresses[1] + '>' + addresses[0]
-        if len(addresses) > 2:
-            header += ',' + ','.join(addresses[2:])
-        try:
-            body_str = body.decode('ascii', errors='replace')
-            return f"{header}:{body_str}".strip()
-        except UnicodeDecodeError:
-            return None
-    return None
+        if len(payload) >= 16:
+            # Remove KISS command byte (first byte)
+            payload = payload[1:]
+            # Parse AX.25 address fields
+            addresses = []
+            addr_end = None
+            for i in range(0, 56, 7):  # Up to 8 addresses (7 bytes each)
+                if i + 7 > len(payload):
+                    break
+                addr = payload[i:i+7]
+                callsign = ''.join([chr((b >> 1) & 0x7F) for b in addr[:6]]).strip()
+                ssid = (addr[6] >> 1) & 0x0F
+                last = addr[6] & 0x01
+                if ssid:
+                    callsign = f"{callsign}-{ssid}"
+                addresses.append(callsign)
+                if last:
+                    addr_end = i + 7
+                    break
+            if addr_end is not None and len(payload) >= addr_end + 3:
+                # APRS body (skip Control and PID)
+                body = payload[addr_end + 2:]
+                # Compose Direwolf-style packet
+                if len(addresses) >= 2:
+                    header = addresses[1] + '>' + addresses[0]
+                    if len(addresses) > 2:
+                        header += ',' + ','.join(addresses[2:])
+                    try:
+                        body_str = body.decode('ascii', errors='replace')
+                        result = f"{header}:{body_str}".strip()
+                    except UnicodeDecodeError:
+                        result = None
+    return result
 
 def parse_aprs(packet_str):
     """
@@ -174,6 +168,29 @@ def clear_kml(filename=None):
     kml = simplekml.Kml()
     kml.save(filename)
 
+def process_aprs_packet(packet):
+    """
+    Process a decoded APRS packet: parse, filter, print, and update KML if appropriate.
+    """
+    if packet and ':' in packet:
+        lat, lon, alt, from_call = parse_aprs(packet)
+        if lat is not None and lon is not None:
+            # Filter by base callsign (ignore SSID, case-insensitive)
+            base_call = from_call.split('-')[0].strip().upper() if from_call else None
+            filter_base = CALLSIGN_FILTER.split('-', maxsplit=1)[0].strip().upper() if CALLSIGN_FILTER else None #pylint: disable=line-too-long
+            if filter_base is None or (base_call and base_call == filter_base):
+                timestamp = get_eastern_time_str()
+                print(f"Accepted: {lat}, {lon}, {alt}, {from_call}, {timestamp}")
+                positions.append((lat, lon, alt, timestamp))
+                write_kml(positions)
+            else:
+                print(f"Ignored packet from {from_call} (filter: {CALLSIGN_FILTER})")
+        else:
+            print(f"Received APRS packet but could not parse position: {packet}")
+    elif packet:
+        print(f"Received malformed APRS packet (no body): {packet}")
+        print(f"Raw packet: {repr(packet)}")
+
 def main(host='localhost', port=8001):
     '''Always create/update the NetworkLink KML at startup'''
     clear_kml()  # <-- Clear KML file before starting
@@ -201,29 +218,11 @@ def main(host='localhost', port=8001):
                 frame = buffer[start:end+1]
                 buffer = buffer[end+1:]
                 packet = decode_kiss_frame(frame)
-                if packet and ':' in packet:
-                    lat, lon, alt, from_call = parse_aprs(packet)
-                    if lat is not None and lon is not None:
-                        # Filter by base callsign (ignore SSID, case-insensitive)
-                        # Extract base callsign (without SSID) for comparison
-                        base_call = from_call.split('-')[0].strip().upper() if from_call else None
-                        filter_base = CALLSIGN_FILTER.split('-', maxsplit=1)[0].strip().upper() if CALLSIGN_FILTER else None #pylint: disable=line-too-long
-                        if filter_base is None or (base_call and base_call == filter_base):
-                            timestamp = get_eastern_time_str()
-                            print(f"Accepted: {lat}, {lon}, {alt}, {from_call}, {timestamp}")  # Debug print pylint: disable=line-too-long
-                            positions.append((lat, lon, alt, timestamp))
-                            write_kml(positions)
-                        else:
-                            print(f"Ignored packet from {from_call} (filter: {CALLSIGN_FILTER})")
-                    else:
-                        print(f"Received APRS packet but could not parse position: {packet}")
-                elif packet:
-                    print(f"Received malformed APRS packet (no body): {packet}")
-                    print(f"Raw packet: {repr(packet)}")
+                process_aprs_packet(packet)
     except KeyboardInterrupt:
         print("\nStopped by user.")
-    except Exception as e: # pylint: disable=broad-except
-        print(f"Error: {e}")
+    except OSError as e:
+        print(f"Socket error: {e}")
     finally:
         sock.close()
 
