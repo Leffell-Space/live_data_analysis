@@ -17,13 +17,18 @@ import simplekml
 import dotenv #env variables
 import pytz  #timezones
 
+dotenv.load_dotenv()  # Load environment variables from .env file if it exists
+
 if len(sys.argv) > 1:
     CALLSIGN = sys.argv[1]
     print(f"CALLSIGN = {CALLSIGN}")
-
-dotenv.load_dotenv()
-CALLSIGN = os.getenv("CALLSIGN")
-print(f"CALLSIGN = {CALLSIGN}")
+if not os.getenv("CALLSIGN") is None:
+    dotenv.load_dotenv()
+    CALLSIGN = os.getenv("CALLSIGN")
+    print(f"CALLSIGN = {CALLSIGN}")
+else:
+    CALLSIGN = "NOCALL"
+    print("No callsign provided, using default NOCALL.")
 
 positions = []
 
@@ -202,6 +207,10 @@ def main(host='localhost', port=8001):
     '''Always create/update the NetworkLink KML at startup'''
     clear_kml()  # <-- Clear KML file before starting
     write_networklink_kml()
+    # Print clickable file URL for tracker_link.kml
+    abs_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "tracker_link.kml"))
+    file_url = 'file:///' + urllib.parse.quote(abs_path.replace("\\", "/"))
+    print(f"NetworkLink KML created: {file_url}")
     print(f"Connecting to KISS server on {host}:{port}...")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
