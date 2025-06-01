@@ -23,7 +23,7 @@ dotenv.load_dotenv()  # Load environment variables from .env file if it exists
 if len(sys.argv) > 1:
     CALLSIGN = sys.argv[1]
     print(f"CALLSIGN = {CALLSIGN}")
-if not os.getenv("CALLSIGN") is None:
+elif not os.getenv("CALLSIGN") is None:
     dotenv.load_dotenv()
     CALLSIGN = os.getenv("CALLSIGN")
     print(f"CALLSIGN = {CALLSIGN}")
@@ -147,7 +147,7 @@ def write_kml(points, filename=None):
     # Upload to S3
     upload_to_s3(filename, "leffell-space-tracker", "tracker.kml")
 
-def write_networklink_kml(target_path=None, link_filename=None, refresh_interval=5):
+def write_networklink_kml(link_filename=None, refresh_interval=5):
     """
     Write a KML NetworkLink referencing another KML file for live updates (e.g., in Google Earth).
     This version points to the S3 bucket.
@@ -190,16 +190,24 @@ def process_aprs_packet(packet):
     if packet and ':' in packet:
         lat, lon, alt, from_call = parse_aprs(packet)
         if lat is not None and lon is not None:
-            # Filter by base callsign (ignore SSID, case-insensitive)
-            base_call = from_call.split('-')[0].strip().upper() if from_call else None
-            filter_base = CALLSIGN_FILTER.split('-', maxsplit=1)[0].strip().upper() if CALLSIGN_FILTER else None #pylint: disable=line-too-long
-            if filter_base is None or (base_call and base_call == filter_base):
+            # Check if filtering is disabled
+            if CALLSIGN_FILTER.upper() == "NOFILTER":
+                # No filtering - accept all packets
                 timestamp = get_eastern_time_str()
                 print(f"Accepted: {lat}, {lon}, {alt}, {from_call}, {timestamp}")
                 positions.append((lat, lon, alt, timestamp))
                 write_kml(positions)
             else:
-                print(f"Ignored packet from {from_call} (filter: {CALLSIGN_FILTER})")
+                # Filter by base callsign (ignore SSID, case-insensitive)
+                base_call = from_call.split('-')[0].strip().upper() if from_call else None
+                filter_base = CALLSIGN_FILTER.split('-', maxsplit=1)[0].strip().upper() if CALLSIGN_FILTER else None #pylint: disable=line-too-long
+                if filter_base is None or (base_call and base_call == filter_base):
+                    timestamp = get_eastern_time_str()
+                    print(f"Accepted: {lat}, {lon}, {alt}, {from_call}, {timestamp}")
+                    positions.append((lat, lon, alt, timestamp))
+                    write_kml(positions)
+                else:
+                    print(f"Ignored packet from {from_call} (filter: {CALLSIGN_FILTER})")
         else:
             print(f"Received APRS packet but could not parse position: {packet}")
     elif packet:
@@ -207,6 +215,10 @@ def process_aprs_packet(packet):
         print(f"Raw packet: {repr(packet)}")
 
 def upload_to_s3(local_file, bucket, s3_key):
+    """
+    Upload a local file to an S3 bucket.
+    """
+
     s3 = boto3.client('s3')
     s3.upload_file(local_file, bucket, s3_key)
 
