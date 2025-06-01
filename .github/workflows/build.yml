@@ -39,7 +39,7 @@ jobs:
   release:
     needs: build-windows-installer
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    #if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
