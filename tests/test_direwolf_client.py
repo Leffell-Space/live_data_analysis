@@ -70,9 +70,12 @@ class TestDirewolfClient(unittest.TestCase):
         except OSError as e:
             logging.error("Could not delete temporary file: %s", e)
 
-    @patch('src.get_from_direwolf.handle_aprs_data')
-    def test_client_receives_data(self, mock_process_aprs_data):
+    @patch('src.get_from_direwolf.parse_aprs')
+    def test_client_receives_data(self, mock_parse_aprs):
         """Test that client receives and processes data from the server"""
+        # Set up mock to return some location data
+        mock_parse_aprs.return_value = (37.5, -121.5, 1000)  # Sample lat, lon, alt
+        
         # Set a timeout for the client (shorter for unit tests)
         test_duration = 8  # Enough time to receive all 3 test frames
 
@@ -86,16 +89,15 @@ class TestDirewolfClient(unittest.TestCase):
         except SystemExit:
             pass
 
-        # Assert that process_aprs_data was called at least 3 times (for our 3 test frames)
-        self.assertGreaterEqual(mock_process_aprs_data.call_count, 3,
+        # Assert that parse_aprs was called at least 3 times (for our 3 test frames)
+        self.assertGreaterEqual(mock_parse_aprs.call_count, 3,
                                "Client should have processed at least 3 APRS frames")
 
         # Check the content of the calls to verify data was processed correctly
-        # We can check for specific callsigns, coordinates or other data in the processed frames
-        for call in mock_process_aprs_data.call_args_list:
+        for call in mock_parse_aprs.call_args_list:
             args, _ = call
-            packet = args[0]
-            self.assertIn("KK6GPV-9", str(packet),
+            packet_str = args[0]
+            self.assertIn("KK6GPV-9", packet_str,
                           "Expected callsign not found in processed packet")
 
 def run_test():
