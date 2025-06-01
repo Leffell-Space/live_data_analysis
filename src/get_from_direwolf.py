@@ -16,6 +16,7 @@ import aprslib
 import simplekml
 import dotenv #env variables
 import pytz  #timezones
+import boto3
 
 dotenv.load_dotenv()  # Load environment variables from .env file if it exists
 
@@ -143,24 +144,24 @@ def write_kml(points, filename=None):
         pnt = kml.newpoint(name="Received at " + timestamp, coords=[(lon, lat, alt if alt else 0)])
         pnt.altitudemode = simplekml.AltitudeMode.absolute
     kml.save(filename)
+    # Upload to S3
+    upload_to_s3(filename, "leffell-space-tracker", "tracker.kml")
 
 def write_networklink_kml(target_path=None, link_filename=None, refresh_interval=5):
     """
     Write a KML NetworkLink referencing another KML file for live updates (e.g., in Google Earth).
-
+    This version points to the S3 bucket.
     """
-    if target_path is None:
-        target_path = os.path.join(os.path.dirname(__file__), "tracker.kml")
+    # Always use the S3 URL for tracker.kml
+    s3_href = "https://leffell-space-tracker.s3.amazonaws.com/tracker.kml"
     if link_filename is None:
         link_filename = os.path.join(os.path.dirname(__file__), "tracker_link.kml")
-    abs_path = os.path.abspath(target_path)
-    href = 'file:///' + urllib.parse.quote(abs_path.replace("\\", "/"))
     kml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <NetworkLink>
     <name>Live Balloon Tracker</name>
     <Link>
-      <href>{href}</href>
+      <href>{s3_href}</href>
       <refreshMode>onInterval</refreshMode>
       <refreshInterval>{refresh_interval}</refreshInterval>
     </Link>
@@ -169,6 +170,8 @@ def write_networklink_kml(target_path=None, link_filename=None, refresh_interval
 """
     with open(link_filename, "w", encoding="utf-8") as f:
         f.write(kml_content)
+    # Upload to S3
+    upload_to_s3(link_filename, "leffell-space-tracker", "tracker_link.kml")
 
 # Clear the KML file at startup so only new, filtered positions are shown
 def clear_kml(filename=None):
@@ -202,6 +205,10 @@ def process_aprs_packet(packet):
     elif packet:
         print(f"Received malformed APRS packet (no body): {packet}")
         print(f"Raw packet: {repr(packet)}")
+
+def upload_to_s3(local_file, bucket, s3_key):
+    s3 = boto3.client('s3')
+    s3.upload_file(local_file, bucket, s3_key, ExtraArgs={'ACL': 'public-read'})
 
 def main(host='localhost', port=8001):
     '''Always create/update the NetworkLink KML at startup'''
