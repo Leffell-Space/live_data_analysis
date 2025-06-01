@@ -13,8 +13,8 @@ import datetime
 import re
 import aprslib
 import simplekml
-import dotenv
-import pytz  # Add this import at the top
+import dotenv 
+import pytz  # type
 
 dotenv.load_dotenv()
 

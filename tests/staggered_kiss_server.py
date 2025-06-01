@@ -1,58 +1,40 @@
-'''Simulates APRS data that will be recieved using direworlf.'''
 import socket
 import time
 
-def extract_kiss_frames(data):
-    '''Extract KISS frames from raw data.'''
-    frames = []
-    start = 0
-    while True:
-        start = data.find(b'\xC0', start)
-        if start == -1:
-            break
-        end = data.find(b'\xC0', start + 1)
-        if end == -1:
-            break
-        frame = data[start:end+1]
-        frames.append(frame)
-        start = end + 1
-    return frames
+# List of hex strings (copy from your dump, one per frame)
+hex_frames = [
+    # KN6DB-14 (to WIDE1-1, simple APRS position)
+    "c082a0a4a6404060969c6c8884407cae92888a6240626103f021333334382e38344a2f31313731362e3931573e546573742031c0",
+    "c0969c9a9088968a68aa9c6c968a88606103f021333334392e39394e2f31313731372e3931573e546573742032c0", 
+    "c0969c9a9088968a68aa9c6c968a88606103f021333335302e35304e2f31313731382e3931573e546573742033c0",
+    "c0969c9a9088968a68aa9c6c968a88606103f021333335312e31314e2f31313731392e3931573e546573742034c0",
+    "c0969c9a9088968a68aa9c6c968a88606103f021333335322e32324e2f31313732302e3931573e546573742035c0",
+    # NOCALL (to WIDE1-1, simple APRS position)
+    "c09c9e86829898619e8c6c968a88606103f021333334382e38344e2f31313731362e3931573e546573742036c0",
+    "c09c9e86829898619e8c6c968a88606103f021333334392e39394e2f31313731372e3931573e546573742037c0",
+    "c09c9e86829898619e8c6c968a88606103f021333335032e35304e2f31313731382e3931573e546573742038c0",
+    "c09c9e86829898619e8c6c968a88606103f021333335312e31314e2f31313731392e3931573e546573742039c0",
+    "c09c9e86829898619e8c6c968a88606103f021333335322e32324e2f31313732302e3931573e54657374203130c0"
+]
 
-def load_frames_from_file(filename):
-    '''Load KISS frames from a file.'''
-    with open(filename, "rb") as f:
-        data = f.read()
-    return extract_kiss_frames(data)
-
-def run_server(frames, host="localhost", port=8001, delay=5):
-    '''Run a TCP server that sends KISS frames with a delay.'''
+def main(host="localhost", port=8001, delay=2):
+    frames = [bytes.fromhex(h) for h in hex_frames]
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_sock.bind((host, port))
     server_sock.listen(1)
-    print(f"Staggered KISS server listening on {host}:{port}")
-
+    print(f"Server listening on {host}:{port}")
     client_sock, addr = server_sock.accept()
     print(f"Client connected from {addr}")
-
     try:
         for frame in frames:
+            print(f"Sending: {frame.hex()}")
             client_sock.sendall(frame)
-            print(f"Sent one frame, waiting {delay} seconds...")
             time.sleep(delay)
-        return True
-    except Exception as e: # pylint: disable=broad-except
-        print(f"Error in server: {e}")
-        return False
     finally:
         client_sock.close()
         server_sock.close()
         print("Server closed.")
-
-def main():
-    '''Main function to run the staggered KISS server.'''
-    frames = load_frames_from_file("tests/test.txt")
-    run_server(frames)
 
 if __name__ == "__main__":
     main()
