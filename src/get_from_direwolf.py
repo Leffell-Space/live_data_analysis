@@ -7,60 +7,148 @@ Also creates/updates tracker_link.kml for Google Earth auto-refresh.
 
 import socket
 import os
+import urllib.parse
+import string
+import datetime
+import re
 import aprslib
 import simplekml
+import dotenv
+import pytz  # Add this import at the top
+
+dotenv.load_dotenv()
 
 positions = []
 
+CALLSIGN_FILTER = os.getenv("CALLSIGN")  # Add callsign
+
+def get_eastern_time_str():
+    """
+    Decode a KISS frame to extract the APRS packet string in standard format.
+    """
+    eastern = pytz.timezone("US/Eastern")  # Get the US/Eastern timezone object
+    return datetime.datetime.now(tz=pytz.utc).astimezone(eastern).strftime("%Y-%m-%d %I:%M:%S %p %Z")    # Return the current time in US/Eastern pylint: disable=line-too-long
+
+
 def decode_kiss_frame(data):
     """
-    Decode a KISS frame to extract the APRS packet string.
+    Decode a KISS frame to extract the APRS packet string in standard format.
     """
     if len(data) < 3:
         return None
-    if data[0] == 0xC0 and data[1] == 0x00 and data[-1] == 0xC0:
-        payload = data[2:-1]
-        payload = payload.replace(b'\xdb\xdc', b'\xc0')
-        payload = payload.replace(b'\xdb\xdd', b'\xdb')
+    if data[0] == 0xC0 and data[-1] == 0xC0:
+        payload = data[1:-1]  # Remove KISS framing
+        if len(payload) < 16:
+            return None
+        # Remove KISS command byte (first byte)
+        payload = payload[1:]
+        # Parse AX.25 address fields
+        addresses = []
+        for i in range(0, 56, 7):  # Up to 8 addresses (7 bytes each)
+            if i + 7 > len(payload):
+                return None
+            addr = payload[i:i+7]
+            callsign = ''.join([chr((b >> 1) & 0x7F) for b in addr[:6]]).strip()
+            ssid = (addr[6] >> 1) & 0x0F
+            last = addr[6] & 0x01
+            if ssid:
+                callsign = f"{callsign}-{ssid}"
+            addresses.append(callsign)
+            if last:
+                addr_end = i + 7
+                break
+        else:
+            return None  # No end of address found
+        # Ensure enough bytes for Control, PID, and at least 1 byte of body
+        if len(payload) < addr_end + 3:
+            return None
+        # APRS body (skip Control and PID)
+        body = payload[addr_end + 2:]
+        # Compose Direwolf-style packet
+        if len(addresses) < 2:
+            return None  # Not enough addresses to form a valid header
+        header = addresses[1] + '>' + addresses[0]
+        if len(addresses) > 2:
+            header += ',' + ','.join(addresses[2:])
         try:
-            packet_str = payload.decode('utf-8', errors='ignore').strip()
-            return packet_str
-        except Exception: # pylint: disable=broad-except
+            body_str = body.decode('ascii', errors='replace')
+            return f"{header}:{body_str}".strip()
+        except UnicodeDecodeError:
             return None
     return None
 
 def parse_aprs(packet_str):
     """
-    Parse APRS packet string and extract lat, lon, alt if available.
+    Parse APRS packet string and extract lat, lon, alt, and from callsign if available.
+    For raw NMEA packets, extract from_call and lat/lon from $GPRMC if present.
     """
+    # Remove non-printable characters
+    packet_str = ''.join(filter(lambda x: x in string.printable, packet_str))
     try:
+        # Try normal aprslib parsing first
         parsed = aprslib.parse(packet_str)
         lat = parsed.get('latitude')
         lon = parsed.get('longitude')
         alt = parsed.get('altitude')
-        return lat, lon, alt
-    except Exception as e: # pylint: disable=broad-except
-        print(f"APRS parse error: {e}")
-        return None, None, None
+        from_call = parsed.get('from')
+        return lat, lon, alt, from_call
+    except Exception: # pylint: disable=broad-except
+        # Fallback: extract from_call manually for NMEA packets
+        try:
+            # Format: FROMCALL>...:body
+            if '>' in packet_str:
+                from_call = packet_str.split('>',maxsplit=1)[0].strip()
+            else:
+                from_call = None
+            # Try to extract lat/lon from $GPRMC
+            match = re.search(r'\$GPRMC,([^,]*),A,([^,]*),([NS]),([^,]*),([EW])', packet_str)
+            if match:
+                # Example: $GPRMC,021851,A,3348.8470,N,11800.1685,W,...
+                lat_raw = match.group(2)
+                lat_dir = match.group(3)
+                lon_raw = match.group(4)
+                lon_dir = match.group(5)
+                # Convert to decimal degrees
+                lat = int(lat_raw[:2]) + float(lat_raw[2:]) / 60.0
+                if lat_dir == 'S':
+                    lat = -lat
+                lon = int(lon_raw[:3]) + float(lon_raw[3:]) / 60.0
+                if lon_dir == 'W':
+                    lon = -lon
+                return lat, lon, None, from_call
+            return None, None, None, from_call
+        except Exception as e: # pylint: disable=broad-except
+            print(f"APRS parse error: {e} | Packet: {repr(packet_str)}")
+            return None, None, None, None
 
 def write_kml(points, filename=None):
-    '''Write points to a KML file for Google Earth visualization.'''
+    """
+    Creates a KML file with placemarks for a list of geographic points.
+
+    Each point is added as a placemark with its latitude, longitude, and altitude.
+    The placemark's name is set to the current timestamp in US/Eastern time.
+    If no filename is provided, the KML file is saved as 'tracker.kml' 
+    in the same directory as this script.
+    """
     if filename is None:
         filename = os.path.join(os.path.dirname(__file__), "tracker.kml")
     kml = simplekml.Kml()
-    for idx, (lat, lon, alt) in enumerate(points):
-        pnt = kml.newpoint(name=f"Balloon {idx+1}", coords=[(lon, lat, alt if alt else 0)])
+    for lat, lon, alt, timestamp in points:
+        pnt = kml.newpoint(name="Received at " + timestamp, coords=[(lon, lat, alt if alt else 0)])
         pnt.altitudemode = simplekml.AltitudeMode.absolute
     kml.save(filename)
 
 def write_networklink_kml(target_path=None, link_filename=None, refresh_interval=5):
-    '''Write a KML NetworkLink for Google Earth to auto-refresh the tracker KML.'''
+    """
+    Write a KML NetworkLink referencing another KML file for live updates (e.g., in Google Earth).
+
+    """
     if target_path is None:
         target_path = os.path.join(os.path.dirname(__file__), "tracker.kml")
     if link_filename is None:
         link_filename = os.path.join(os.path.dirname(__file__), "tracker_link.kml")
     abs_path = os.path.abspath(target_path)
-    href = f"file://{abs_path}"
+    href = 'file:///' + urllib.parse.quote(abs_path.replace("\\", "/"))
     kml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <NetworkLink>
@@ -76,8 +164,19 @@ def write_networklink_kml(target_path=None, link_filename=None, refresh_interval
     with open(link_filename, "w", encoding="utf-8") as f:
         f.write(kml_content)
 
+# Clear the KML file at startup so only new, filtered positions are shown
+def clear_kml(filename=None):
+    """
+    Clears the contents of a KML file. Used for clearing only tracker.kml not tracker_link.kml.
+    """
+    if filename is None:
+        filename = os.path.join(os.path.dirname(__file__), "tracker.kml")
+    kml = simplekml.Kml()
+    kml.save(filename)
+
 def main(host='localhost', port=8001):
     '''Always create/update the NetworkLink KML at startup'''
+    clear_kml()  # <-- Clear KML file before starting
     write_networklink_kml()
     print(f"Connecting to KISS server on {host}:{port}...")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -102,14 +201,25 @@ def main(host='localhost', port=8001):
                 frame = buffer[start:end+1]
                 buffer = buffer[end+1:]
                 packet = decode_kiss_frame(frame)
-                if packet:
-                    lat, lon, alt = parse_aprs(packet)
+                if packet and ':' in packet:
+                    lat, lon, alt, from_call = parse_aprs(packet)
                     if lat is not None and lon is not None:
-                        print(f"Lat: {lat}, Lon: {lon}, Alt: {alt if alt is not None else 'N/A'}")
-                        positions.append((lat, lon, alt))
-                        write_kml(positions)  # Now always writes to src/tracker.kml
+                        # Filter by base callsign (ignore SSID, case-insensitive)
+                        # Extract base callsign (without SSID) for comparison
+                        base_call = from_call.split('-')[0].strip().upper() if from_call else None
+                        filter_base = CALLSIGN_FILTER.split('-', maxsplit=1)[0].strip().upper() if CALLSIGN_FILTER else None #pylint: disable=line-too-long
+                        if filter_base is None or (base_call and base_call == filter_base):
+                            timestamp = get_eastern_time_str()
+                            print(f"Accepted: {lat}, {lon}, {alt}, {from_call}, {timestamp}")  # Debug print pylint: disable=line-too-long
+                            positions.append((lat, lon, alt, timestamp))
+                            write_kml(positions)
+                        else:
+                            print(f"Ignored packet from {from_call} (filter: {CALLSIGN_FILTER})")
                     else:
                         print(f"Received APRS packet but could not parse position: {packet}")
+                elif packet:
+                    print(f"Received malformed APRS packet (no body): {packet}")
+                    print(f"Raw packet: {repr(packet)}")
     except KeyboardInterrupt:
         print("\nStopped by user.")
     except Exception as e: # pylint: disable=broad-except

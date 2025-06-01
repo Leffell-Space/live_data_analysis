@@ -179,3 +179,8 @@ tracker.kml
 
 #Ignore zip files
 *.zip
+
+
+
+
+.DS_Store
