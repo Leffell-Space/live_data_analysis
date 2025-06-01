@@ -12,7 +12,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 os.chdir(project_root)
 
 # Paths to the scripts
-server_script = os.path.join(project_root, 'tests', 'staggered_kiss_server.py')
+server_script = os.path.join(project_root, 'src', 'staggered_kiss_server.py')
 client_script = os.path.join(project_root, 'tests', 'get_from_direwolf.py')
 
 print(f"Starting server: {server_script}")
