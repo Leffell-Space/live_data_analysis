@@ -16,6 +16,7 @@ import aprslib
 import simplekml
 import dotenv #env variables
 import pytz  #timezones
+
 if len(sys.argv) > 1:
     CALLSIGN = sys.argv[1]
     print(f"CALLSIGN = {CALLSIGN}")
