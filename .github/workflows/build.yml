@@ -34,7 +34,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: get_from_direwolf
-          path: dist/get_from_direwolf
+          path: dist/get_from_direwolf.exe
 
   release:
     needs: build-windows-installer
@@ -45,7 +45,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: get_from_direwolf
-          path: release-assets
+          path: dist/get_from_direwolf.exe
 
       - name: Create GitHub Release
         id: create_release
@@ -62,6 +62,6 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release-assets/get_from_direwolf/get_from_direwolf.exe
+          asset_path: release-assets/get_from_direwolf.exe
           asset_name: get_from_direwolf.exe
           asset_content_type: application/octet-stream
