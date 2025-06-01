@@ -2,13 +2,9 @@ name: Build Python and Release Executable
 
 on:
   push:
-    paths:
-      - "src/get_from_direwolf.py"
-      - .github/workflows/build.yml
+    branches: [ main ]
   pull_request:
-    paths:
-      - "src/get_from_direwolf.py"
-      - .github/workflows/build.yml
+    branches: [ main ]
 
 permissions:
   contents: write
