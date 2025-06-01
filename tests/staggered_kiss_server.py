@@ -1,6 +1,7 @@
 '''Simulates APRS data that will be recieved using direworlf.'''
 import socket
 import time
+import os
 
 def extract_kiss_frames(data):
     '''Extract KISS frames from raw data.'''
@@ -51,7 +52,7 @@ def run_server(frames, host="localhost", port=8001, delay=5):
 
 def main():
     '''Main function to run the staggered KISS server.'''
-    frames = load_frames_from_file("tests/test.txt")
+    frames = load_frames_from_file(os.path.join(os.path.dirname(__file__), "test.txt"))
     run_server(frames)
 
 if __name__ == "__main__":
