@@ -34,48 +34,42 @@ def decode_kiss_frame(data):
     """
     Decode a KISS frame to extract the APRS packet string in standard format.
     """
-    if len(data) < 3:
-        return None
-    if data[0] == 0xC0 and data[-1] == 0xC0:
+    result = None
+    if len(data) >= 3 and data[0] == 0xC0 and data[-1] == 0xC0:
         payload = data[1:-1]  # Remove KISS framing
-        if len(payload) < 16:
-            return None
-        # Remove KISS command byte (first byte)
-        payload = payload[1:]
-        # Parse AX.25 address fields
-        addresses = []
-        for i in range(0, 56, 7):  # Up to 8 addresses (7 bytes each)
-            if i + 7 > len(payload):
-                return None
-            addr = payload[i:i+7]
-            callsign = ''.join([chr((b >> 1) & 0x7F) for b in addr[:6]]).strip()
-            ssid = (addr[6] >> 1) & 0x0F
-            last = addr[6] & 0x01
-            if ssid:
-                callsign = f"{callsign}-{ssid}"
-            addresses.append(callsign)
-            if last:
-                addr_end = i + 7
-                break
-        else:
-            return None  # No end of address found
-        # Ensure enough bytes for Control, PID, and at least 1 byte of body
-        if len(payload) < addr_end + 3:
-            return None
-        # APRS body (skip Control and PID)
-        body = payload[addr_end + 2:]
-        # Compose Direwolf-style packet
-        if len(addresses) < 2:
-            return None  # Not enough addresses to form a valid header
-        header = addresses[1] + '>' + addresses[0]
-        if len(addresses) > 2:
-            header += ',' + ','.join(addresses[2:])
-        try:
-            body_str = body.decode('ascii', errors='replace')
-            return f"{header}:{body_str}".strip()
-        except UnicodeDecodeError:
-            return None
-    return None
+        if len(payload) >= 16:
+            # Remove KISS command byte (first byte)
+            payload = payload[1:]
+            # Parse AX.25 address fields
+            addresses = []
+            addr_end = None
+            for i in range(0, 56, 7):  # Up to 8 addresses (7 bytes each)
+                if i + 7 > len(payload):
+                    break
+                addr = payload[i:i+7]
+                callsign = ''.join([chr((b >> 1) & 0x7F) for b in addr[:6]]).strip()
+                ssid = (addr[6] >> 1) & 0x0F
+                last = addr[6] & 0x01
+                if ssid:
+                    callsign = f"{callsign}-{ssid}"
+                addresses.append(callsign)
+                if last:
+                    addr_end = i + 7
+                    break
+            if addr_end is not None and len(payload) >= addr_end + 3:
+                # APRS body (skip Control and PID)
+                body = payload[addr_end + 2:]
+                # Compose Direwolf-style packet
+                if len(addresses) >= 2:
+                    header = addresses[1] + '>' + addresses[0]
+                    if len(addresses) > 2:
+                        header += ',' + ','.join(addresses[2:])
+                    try:
+                        body_str = body.decode('ascii', errors='replace')
+                        result = f"{header}:{body_str}".strip()
+                    except UnicodeDecodeError:
+                        result = None
+    return result
 
 def parse_aprs(packet_str):
     """
