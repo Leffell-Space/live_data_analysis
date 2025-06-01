@@ -181,9 +181,8 @@ tracker.kml
 *.zip
 
 
+# macOS Finder files
+.DS_Store
 
-
-.DS_Store # macOS Finder files
-
-
-src/dump_port_8001_to_file.py #somthing I made as a test (not meant for github)
+# somthing I made as a test (not meant for github)
+src/dump_port_8001_to_file.py
