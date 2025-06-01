@@ -30,23 +30,29 @@ jobs:
         run: |
           python -m PyInstaller src/get_from_direwolf.py
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: get_from_direwolf
-          path: dist/get_from_direwolf.exe
+          - name: Upload artifact
+            uses: actions/upload-artifact@v4
+            with:
+              name: get_from_direwolf
+              path: dist/get_from_direwolf.exe
 
   release:
     needs: build-windows-installer
     runs-on: ubuntu-latest
-    #if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: get_from_direwolf
-          path: dist/get_from_direwolf.exe
-
+          path: release-assets
+      
+      - name: Check artifact exists
+        run: |
+          if [ ! -f release-assets/get_from_direwolf.exe ]; then
+            echo "Artifact not found or expired."
+            exit 1
+          fi
+      
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -57,7 +63,7 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+      
       - name: Upload release asset
         uses: actions/upload-release-asset@v1
         with:
@@ -65,3 +71,4 @@ jobs:
           asset_path: release-assets/get_from_direwolf.exe
           asset_name: get_from_direwolf.exe
           asset_content_type: application/octet-stream
+
