@@ -208,7 +208,7 @@ def process_aprs_packet(packet):
 
 def upload_to_s3(local_file, bucket, s3_key):
     s3 = boto3.client('s3')
-    s3.upload_file(local_file, bucket, s3_key, ExtraArgs={'ACL': 'public-read'})
+    s3.upload_file(local_file, bucket, s3_key)
 
 def main(host='localhost', port=8001):
     '''Always create/update the NetworkLink KML at startup'''
