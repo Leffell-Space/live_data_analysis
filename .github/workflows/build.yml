@@ -31,3 +31,17 @@ jobs:
         with:
           name: artifact
           path: dist/get_from_direwolf
+      - name: Get PR number from merge commit
+        id: get_pr_number
+        run: |
+          PR_NUMBER=$(echo "${{ github.event.head_commit.message }}" | grep -oE "#[0-9]+" | grep -oE "[0-9]+")
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: release-${{ github.sha }}
+          name: Release for PR ${{ steps.get_pr_number.outputs.pr_number }}
+          files: path/to/your/artifact.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.get_pr_number.outputs.pr_number != ''
