@@ -8,8 +8,8 @@ import subprocess
 import sys
 import logging
 
-# Make sure we're running from the project root
-project_root = os.path.dirname(os.path.abspath(__file__))
+# Make sure we're running from the project root (one directory up from this file)
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 os.chdir(project_root)
 
 # Run the specific test script directly
