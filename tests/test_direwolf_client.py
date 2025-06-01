@@ -75,7 +75,7 @@ class TestDirewolfClient(unittest.TestCase):
         """Test that client receives and processes data from the server"""
         # Set up mock to return some location data
         mock_parse_aprs.return_value = (37.5, -121.5, 1000)  # Sample lat, lon, alt
-        
+
         # Set a timeout for the client (shorter for unit tests)
         test_duration = 8  # Enough time to receive all 3 test frames
 
