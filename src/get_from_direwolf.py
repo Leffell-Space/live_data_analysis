@@ -168,6 +168,29 @@ def clear_kml(filename=None):
     kml = simplekml.Kml()
     kml.save(filename)
 
+def process_aprs_packet(packet):
+    """
+    Process a decoded APRS packet: parse, filter, print, and update KML if appropriate.
+    """
+    if packet and ':' in packet:
+        lat, lon, alt, from_call = parse_aprs(packet)
+        if lat is not None and lon is not None:
+            # Filter by base callsign (ignore SSID, case-insensitive)
+            base_call = from_call.split('-')[0].strip().upper() if from_call else None
+            filter_base = CALLSIGN_FILTER.split('-', maxsplit=1)[0].strip().upper() if CALLSIGN_FILTER else None #pylint: disable=line-too-long
+            if filter_base is None or (base_call and base_call == filter_base):
+                timestamp = get_eastern_time_str()
+                print(f"Accepted: {lat}, {lon}, {alt}, {from_call}, {timestamp}")
+                positions.append((lat, lon, alt, timestamp))
+                write_kml(positions)
+            else:
+                print(f"Ignored packet from {from_call} (filter: {CALLSIGN_FILTER})")
+        else:
+            print(f"Received APRS packet but could not parse position: {packet}")
+    elif packet:
+        print(f"Received malformed APRS packet (no body): {packet}")
+        print(f"Raw packet: {repr(packet)}")
+
 def main(host='localhost', port=8001):
     '''Always create/update the NetworkLink KML at startup'''
     clear_kml()  # <-- Clear KML file before starting
@@ -195,29 +218,11 @@ def main(host='localhost', port=8001):
                 frame = buffer[start:end+1]
                 buffer = buffer[end+1:]
                 packet = decode_kiss_frame(frame)
-                if packet and ':' in packet:
-                    lat, lon, alt, from_call = parse_aprs(packet)
-                    if lat is not None and lon is not None:
-                        # Filter by base callsign (ignore SSID, case-insensitive)
-                        # Extract base callsign (without SSID) for comparison
-                        base_call = from_call.split('-')[0].strip().upper() if from_call else None
-                        filter_base = CALLSIGN_FILTER.split('-', maxsplit=1)[0].strip().upper() if CALLSIGN_FILTER else None #pylint: disable=line-too-long
-                        if filter_base is None or (base_call and base_call == filter_base):
-                            timestamp = get_eastern_time_str()
-                            print(f"Accepted: {lat}, {lon}, {alt}, {from_call}, {timestamp}")  # Debug print pylint: disable=line-too-long
-                            positions.append((lat, lon, alt, timestamp))
-                            write_kml(positions)
-                        else:
-                            print(f"Ignored packet from {from_call} (filter: {CALLSIGN_FILTER})")
-                    else:
-                        print(f"Received APRS packet but could not parse position: {packet}")
-                elif packet:
-                    print(f"Received malformed APRS packet (no body): {packet}")
-                    print(f"Raw packet: {repr(packet)}")
+                process_aprs_packet(packet)
     except KeyboardInterrupt:
         print("\nStopped by user.")
-    except Exception as e: # pylint: disable=broad-except
-        print(f"Error: {e}")
+    except OSError as e:
+        print(f"Socket error: {e}")
     finally:
         sock.close()
 
