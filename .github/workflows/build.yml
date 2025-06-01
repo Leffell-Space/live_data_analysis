@@ -4,7 +4,6 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    types: [opened]
 
 permissions:
   contents: write
@@ -61,7 +60,7 @@ jobs:
   release:
     needs: build-multi-platform
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    #if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
