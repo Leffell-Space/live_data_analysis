@@ -31,6 +31,11 @@ jobs:
         with:
           name: artifact
           path: dist/get_from_direwolf
+      - name: Zip artifact
+        run: |
+          cd dist
+          powershell Compress-Archive -Path get_from_direwolf\* -DestinationPath ../get_from_direwolf.zip
+          cd ..
       - name: Get PR number from merge commit
         id: get_pr_number
         run: |
@@ -41,7 +46,7 @@ jobs:
         with:
           tag_name: release-${{ github.sha }}
           name: Release for PR ${{ steps.get_pr_number.outputs.pr_number }}
-          files: path/to/your/artifact.zip
+          files: get_from_direwolf.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: steps.get_pr_number.outputs.pr_number != ''
