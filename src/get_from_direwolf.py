@@ -10,11 +10,15 @@ import os
 import urllib.parse
 import string
 import datetime
+import sys
 import re
 import aprslib
 import simplekml
 import dotenv #env variables
 import pytz  #timezones
+if len(sys.argv) > 1:
+    CALLSIGN = sys.argv[1]
+    print(f"CALLSIGN = {CALLSIGN}")
 
 dotenv.load_dotenv()
 CALLSIGN = os.getenv("CALLSIGN")
@@ -22,7 +26,7 @@ print(f"CALLSIGN = {CALLSIGN}")
 
 positions = []
 
-CALLSIGN_FILTER = os.getenv("CALLSIGN")  # Add callsign
+CALLSIGN_FILTER = CALLSIGN  # Add callsign
 
 def get_eastern_time_str():
     """
