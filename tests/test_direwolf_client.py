@@ -52,7 +52,7 @@ class TestDirewolfClient(unittest.TestCase):
     def setUp(self):
         """Setup test environment"""
         self.test_file = create_test_data()
-        logging.info(f"Created test data file: {self.test_file}")
+        logging.info("Created test data file: %s", self.test_file)
 
         # Start server in a separate thread
         self.server = threading.Thread(target=server_thread, args=(self.test_file, 2))
