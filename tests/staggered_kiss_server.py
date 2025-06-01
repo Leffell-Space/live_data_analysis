@@ -1,58 +1,39 @@
-'''Simulates APRS data that will be recieved using direworlf.'''
+"""This module provides a simple TCP server for testing purposes. The server sends a sequence of pre-defined frames #pylint: disable=line-too-long
+    to a connected client with a configurable delay between each frame. The frames are expected to be provided as #pylint: disable=line-too-long
+    hexadecimal string representations in a global variable named `hex_frames`."""
 import socket
 import time
+# List of hex strings (copy from your dump, one per frame)
+hex_frames = [
+    # USING PACKETS FROM KN6DB-14 for testing
+    "c0008ea0a698964060969c6c8884407c9c6c8ab04040e903f0244750524d432c3032313835312c412c333334382e383437302c4e2c31313830302e313638352c572c3030302e302c3237342e302c3233313130352c3031332e342c452a36440d0ac0", #pylint: disable=line-too-long
+    "c0008ea0a698964060969c6c8884407c9c6c8ab04040e303f0244750524d432c3032303635312c412c333334382e383437342c4e2c31313830302e313638392c572c3030302e302c3237342e302c3233313130352c3031332e342c452a36410d0ac0", #pylint: disable=line-too-long
+    "c0008ea0a698964060969c6c8884407c9c6c8ab04040e303f0244750524d432c3032303635312c412c333334382e383437342c4e2c31313830302e313638392c572c3030302e302c3237342e302c3233313130352c3031332e342c452a36410d0ac0", #pylint: disable=line-too-long
+    "c0008ea0a698964060969c6c8884407c9c6c8ab04040e303f0244750524d432c3032303635312c412c333334382e383437342c4e2c31313830302e313638392c572c3030302e302c3237342e302c3233313130352c3031332e342c452a36410d0ac0", #pylint: disable=line-too-long
+    "c0008ea0a698964060969c6c8884407c9c6c8ab04040e303f0244750524d432c3032303635312c412c333334382e383437342c4e2c31313830302e313638392c572c3030302e302c3237342e302c3233313130352c3031332e342c452a36410d0ac0" #pylint: disable=line-too-long
+]
 
-def extract_kiss_frames(data):
-    '''Extract KISS frames from raw data.'''
-    frames = []
-    start = 0
-    while True:
-        start = data.find(b'\xC0', start)
-        if start == -1:
-            break
-        end = data.find(b'\xC0', start + 1)
-        if end == -1:
-            break
-        frame = data[start:end+1]
-        frames.append(frame)
-        start = end + 1
-    return frames
-
-def load_frames_from_file(filename):
-    '''Load KISS frames from a file.'''
-    with open(filename, "rb") as f:
-        data = f.read()
-    return extract_kiss_frames(data)
-
-def run_server(frames, host="localhost", port=8001, delay=5):
-    '''Run a TCP server that sends KISS frames with a delay.'''
+def main(host="localhost", port=8001, delay=2):
+    """
+    Starts a TCP server that sends a sequence of pre-defined frames to a connected client with a specified delay between each frame. #pylint: disable=line-too-long
+    """
+    frames = [bytes.fromhex(h) for h in hex_frames]
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_sock.bind((host, port))
     server_sock.listen(1)
-    print(f"Staggered KISS server listening on {host}:{port}")
-
+    print(f"Server listening on {host}:{port}")
     client_sock, addr = server_sock.accept()
     print(f"Client connected from {addr}")
-
     try:
         for frame in frames:
+            print(f"Sending: {frame.hex()}")
             client_sock.sendall(frame)
-            print(f"Sent one frame, waiting {delay} seconds...")
             time.sleep(delay)
-        return True
-    except Exception as e: # pylint: disable=broad-except
-        print(f"Error in server: {e}")
-        return False
     finally:
         client_sock.close()
         server_sock.close()
         print("Server closed.")
-
-def main():
-    '''Main function to run the staggered KISS server.'''
-    frames = load_frames_from_file("test.txt")
-    run_server(frames)
 
 if __name__ == "__main__":
     main()

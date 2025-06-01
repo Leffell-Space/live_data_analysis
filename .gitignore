@@ -179,3 +179,10 @@ tracker.kml
 
 #Ignore zip files
 *.zip
+
+
+# macOS Finder files
+.DS_Store
+
+# somthing I made as a test (not meant for github)
+src/dump_port_8001_to_file.py

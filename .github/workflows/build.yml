@@ -2,11 +2,8 @@ name: Build Python and Release Executable
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
 
 permissions:
   contents: write
@@ -18,18 +15,53 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11.9'
+          python-version: '3.13'
           architecture: 'x64'
+
       - name: Install requirements
         run: |
           pip install -r requirements.txt
+
       - name: Run PyInstaller
         run: |
           python -m PyInstaller src/get_from_direwolf.py
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: artifact
+          name: get_from_direwolf
           path: dist/get_from_direwolf
+
+  release:
+    needs: build-windows-installer
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: get_from_direwolf
+          path: release-assets
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.event.number }}
+          release_name: "Release ${{ github.event.number }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release-assets/get_from_direwolf/get_from_direwolf.exe
+          asset_name: get_from_direwolf.exe
+          asset_content_type: application/octet-stream
