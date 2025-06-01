@@ -10,6 +10,7 @@ import time
 import tempfile
 import unittest
 from unittest.mock import patch
+import logging
 
 # Add the parent directory to the path so we can import the modules
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -51,7 +52,7 @@ class TestDirewolfClient(unittest.TestCase):
     def setUp(self):
         """Setup test environment"""
         self.test_file = create_test_data()
-        print(f"Created test data file: {self.test_file}")
+        logging.info(f"Created test data file: {self.test_file}")
 
         # Start server in a separate thread
         self.server = threading.Thread(target=server_thread, args=(self.test_file, 2))
@@ -67,7 +68,7 @@ class TestDirewolfClient(unittest.TestCase):
         try:
             os.unlink(self.test_file)
         except OSError as e:
-            print(f"Could not delete temporary file: {e}")
+            logging.error("Could not delete temporary file: %s", e)
 
     @patch('src.get_from_direwolf.process_aprs_data')
     def test_client_receives_data(self, mock_process_aprs_data):
