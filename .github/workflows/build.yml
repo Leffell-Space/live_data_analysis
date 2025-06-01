@@ -4,7 +4,6 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main ]
 
 permissions:
   contents: write
@@ -16,37 +15,53 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Install Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
           architecture: 'x64'
+
       - name: Install requirements
         run: |
           pip install -r requirements.txt
+
       - name: Run PyInstaller
         run: |
           python -m PyInstaller src/get_from_direwolf.py
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: artifact
+          name: get_from_direwolf
           path: dist/get_from_direwolf
-      - name: Zip artifact
-        run: |
-          cd dist
-          powershell Compress-Archive -Path get_from_direwolf\* -DestinationPath ../get_from_direwolf.zip
-          cd ..
-      - name: Get PR number from merge commit
-        id: get_pr_number
-        run: |
-          PR_NUMBER=$(echo "${{ github.event.head_commit.message }}" | grep -oE "#[0-9]+" | grep -oE "[0-9]+")
-          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+
+  release:
+    needs: build-windows-installer
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
         with:
-          tag_name: release-${{ github.sha }}
-          name: Release for PR ${{ steps.get_pr_number.outputs.pr_number }}
-          files: get_from_direwolf.zip
+          name: get_from_direwolf
+          path: release-assets
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.event.number }}
+          release_name: "Release ${{ github.event.number }}"
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: steps.get_pr_number.outputs.pr_number != ''
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release-assets/get_from_direwolf/get_from_direwolf.exe
+          asset_name: get_from_direwolf.exe
+          asset_content_type: application/octet-stream
