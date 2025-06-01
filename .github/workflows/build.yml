@@ -4,14 +4,29 @@ on:
   push:
     branches: [ main ]
   pull_request:
+    types: [opened]
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  build-windows-installer:
-    runs-on: windows-latest
+  build-multi-platform:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            artifact_name: get_from_direwolf-windows.exe
+            asset_name: get_from_direwolf.exe
+          - os: ubuntu-latest
+            artifact_name: get_from_direwolf-linux
+            asset_name: get_from_direwolf-linux
+          - os: macos-latest
+            artifact_name: get_from_direwolf-macos
+            asset_name: get_from_direwolf-macos
+    
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,43 +40,75 @@ jobs:
       - name: Install requirements
         run: |
           pip install -r src/requirements.txt
+          pip install pyinstaller
 
-      - name: Run PyInstaller
+      - name: Run PyInstaller (Windows)
+        if: matrix.os == 'windows-latest'
         run: |
-          python -m PyInstaller src/get_from_direwolf.py
+          python -m PyInstaller --onefile --name get_from_direwolf src/get_from_direwolf.py
+
+      - name: Run PyInstaller (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          python -m PyInstaller --onefile --name get_from_direwolf src/get_from_direwolf.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: get_from_direwolf
-          path: dist/get_from_direwolf
+          name: ${{ matrix.artifact_name }}
+          path: dist/get_from_direwolf${{ matrix.os == 'windows-latest' && '.exe' || '' }}
 
   release:
-    needs: build-windows-installer
+    needs: build-multi-platform
     runs-on: ubuntu-latest
-    #if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-      - name: Download artifact
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: get_from_direwolf
           path: release-assets
+
+      - name: List downloaded files (debug)
+        run: |
+          echo "Downloaded files:"
+          find release-assets -type f -ls
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          TAG="v$(date +'%Y.%m.%d')-$(echo ${{ github.sha }} | cut -c1-7)"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Generated tag: $TAG"
 
       - name: Create GitHub Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: "test"
-          release_name: "test"
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "Release ${{ steps.tag.outputs.tag }}"
+          body: |
+            ## Release Notes
+            
+            **Built from commit:** ${{ github.sha }}
+            **Build date:** $(date +'%Y-%m-%d %H:%M:%S UTC')
+            
+            ### Changes
+            - Automated build from latest main branch
+            
+            ### Files
+            - `get_from_direwolf.exe` - Windows executable
+            - `get_from_direwolf-linux` - Linux executable  
+            - `get_from_direwolf-macos` - macOS executable
+            
+            ### Usage
+            1. Download the appropriate executable for your platform
+            2. Run from command line or double-click to execute (Windows)
+            3. On Unix systems, you may need to make executable: `chmod +x get_from_direwolf-*`
+          files: |
+            release-assets/get_from_direwolf-windows.exe/get_from_direwolf.exe
+            release-assets/get_from_direwolf-linux/get_from_direwolf
+            release-assets/get_from_direwolf-macos/get_from_direwolf
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload release asset
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release-assets/get_from_direwolf/get_from_direwolf.exe
-          asset_name: get_from_direwolf.exe
-          asset_content_type: application/octet-stream
