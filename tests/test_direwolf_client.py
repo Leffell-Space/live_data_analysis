@@ -100,8 +100,10 @@ class TestDirewolfClient(unittest.TestCase):
 
 def run_test():
     """Run the test as a standalone script"""
-    unittest.main(argv=['first-arg-is-ignored'], exit=False)
+    result = unittest.main(argv=['first-arg-is-ignored'], exit=False)
+    return 0 if result.result.wasSuccessful() else 1
 
 # Only run the test when this script is executed directly
 if __name__ == "__main__":
-    run_test()
+    EXIT_CODE = run_test()
+    sys.exit(EXIT_CODE)

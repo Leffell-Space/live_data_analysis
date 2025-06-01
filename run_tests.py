@@ -5,6 +5,8 @@ cause conflicts with other tests.
 """
 import os
 import subprocess
+import sys
+import logging
 
 # Make sure we're running from the project root
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -15,4 +17,8 @@ test_script = os.path.join(project_root, 'tests', 'test_direwolf_client.py')
 print(f"Running test: {test_script}")
 
 # Execute the test script as a subprocess
-subprocess.run(['python', test_script], check=True)
+result = subprocess.run(['python', test_script], check=False)
+logging.info("Test completed with exit code: %d", result.returncode)
+
+# Exit with the same code as the test
+sys.exit(result.returncode)
