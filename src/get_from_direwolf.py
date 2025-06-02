@@ -7,7 +7,6 @@ Also creates/updates tracker_link.kml for Google Earth auto-refresh.
 
 import socket
 import os
-import urllib.parse
 import string
 import datetime
 import sys
@@ -227,9 +226,7 @@ def main(host='localhost', port=8001):
     clear_kml()  # <-- Clear KML file before starting
     write_networklink_kml()
     # Print clickable file URL for tracker_link.kml
-    abs_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "tracker_link.kml"))
-    file_url = 'file:///' + urllib.parse.quote(abs_path.replace("\\", "/"))
-    print(f"NetworkLink KML created: {file_url}")
+    print("To view the data in Google Earth, download the KML file here: https://leffell-space-tracker.s3.us-east-2.amazonaws.com/tracker_link.kml") #pylint: disable=line-too-long
     print(f"Connecting to KISS server on {host}:{port}...")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
