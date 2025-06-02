@@ -14,8 +14,8 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Create .aws directory at project root
-      run: mkdir -p .aws
+    - name: Create .aws directory in home
+      run: mkdir -p ~/.aws
     
     - name: Create credentials & config files
       run: |
