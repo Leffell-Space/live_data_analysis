@@ -19,8 +19,13 @@ jobs:
     
     - name: Create credentials & config files
       run: |
-        echo ${{secrets.AWS_CREDENTIALS}} > .aws/credentials
-        echo "[Default]\nregion = us-east-2" > .aws/config
+        cat > .aws/credentials << 'EOF'
+        ${{ secrets.AWS_CREDENTIALS }}
+        EOF
+        cat > .aws/config << 'EOF'
+        [default]
+        region = us-east-2
+        EOF
 
 
 
