@@ -23,7 +23,9 @@ dotenv.load_dotenv()  # Load environment variables from .env file if it exists
 S3_BUCKET = os.getenv("S3BUCKET")
 S3_REGION = os.getenv("S3REGION")
 S3_URL = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/"
-
+print(f"S3_BUCKET = {S3_BUCKET}")
+print(f"S3_REGION = {S3_REGION}")
+print(f"S3_URL = {S3_URL}")
 if len(sys.argv) > 1:
     CALLSIGN = sys.argv[1]
     print(f"CALLSIGN = {CALLSIGN}")
