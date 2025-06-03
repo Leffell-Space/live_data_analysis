@@ -60,6 +60,8 @@ jobs:
         run: |
           echo "Downloaded files:"
           find release-assets -type f -ls
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Reorganize files for release
         run: |
           # Move files to the expected locations for the release with proper naming
