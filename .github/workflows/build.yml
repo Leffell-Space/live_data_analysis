@@ -72,6 +72,14 @@ jobs:
       - name: Get current date
         id: date
         run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+      - name: Get merged PR for the commit
+        id: get_pr
+        run: |
+          PR_JSON=$(gh pr list --state merged --base main --search "${{ github.sha }}" --json number,body -q '.[0]')
+          echo "PR_JSON: $PR_JSON"
+          echo "PR_BODY=$(echo "$PR_JSON" | jq -r '.body')" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate release tag
         id: tag
         run: |
@@ -89,7 +97,7 @@ jobs:
             **Built from commit:** ${{ github.sha }}
             **Build date:** ${{ steps.date.outputs.date }}
             ### Changes
-            - Automated build from latest main branch
+            ${{ steps.get_pr.outputs.PR_BODY }}
             ### Files
             - `get_from_direwolf-windows.exe` - Windows executable
             - `get_from_direwolf-linux` - Linux executable
