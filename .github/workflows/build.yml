@@ -73,10 +73,9 @@ jobs:
       - name: Get merged PR for the commit
         id: get_pr
         run: |
-          PR_BODY=$(gh pr view ${{ github.sha }} --json body -q '.body' || echo "")
-          echo "PR_BODY<<EOF" >> $GITHUB_ENV
-          echo "$PR_BODY" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          PR_JSON=$(gh pr list --state merged --base main --search "${{ github.sha }}" --json number,body -q '.[0]')
+          echo "PR_JSON: $PR_JSON"
+          echo "PR_BODY=$(echo "$PR_JSON" | jq -r '.body')" >> $GITHUB_ENV
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate release tag
