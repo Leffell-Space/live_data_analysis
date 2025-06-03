@@ -67,7 +67,7 @@ jobs:
           ls -la release-files/
       - name: Get current date
         id: date
-        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
       - name: Checkout
         uses: actions/checkout@v4
       - name: Get merged PR for the commit
@@ -75,27 +75,27 @@ jobs:
         run: |
           PR_JSON=$(gh pr list --state merged --base main --search "${{ github.sha }}" --json number,body -q '.[0]')
           echo "PR_JSON: $PR_JSON"
-          echo "PR_BODY=$(echo "$PR_JSON" | jq -r '.body')" >> $GITHUB_OUTPUT
+          echo "PR_BODY=$(echo "$PR_JSON" | jq -r '.body')" >> $GITHUB_ENV
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate release tag
         id: tag
         run: |
           TAG="v$(date +'%Y.%m.%d')-$(echo ${{ github.sha }} | cut -c1-7)"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_ENV
           echo "Generated tag: $TAG"
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: "Release ${{ steps.tag.outputs.tag }}"
+          tag_name: ${{ env.tag }}
+          name: "Release ${{ env.tag }}"
           body: |
             ## Release Notes
             **Built from commit:** ${{ github.sha }}
-            **Build date:** ${{ steps.date.outputs.date }}
+            **Build date:** ${{ env.date }}
             ### Changes
-            ${{ steps.get_pr.outputs.PR_BODY }}
+            ${{ env.PR_BODY }}
             ### Files
             - `get_from_direwolf-windows.exe` - Windows executable
             - `get_from_direwolf-linux` - Linux executable
