@@ -1,5 +1,4 @@
 """
-KISS Protocol Test Client
 Connects to a KISS server (e.g., kiss_test_server.py) on port 8001 and prints received APRS packets.
 Retains all received points and writes them to tracker.kml.
 Also creates/updates tracker_link.kml for Google Earth auto-refresh.
@@ -26,7 +25,7 @@ SPACES_ACCESS_KEY = os.getenv("SPACES_ACCESS_KEY")
 SPACES_SECRET_KEY = os.getenv("SPACES_SECRET_KEY")
 
 # Build the public URL for your space
-S3_URL = f"https://{SPACES_BUCKET}.{SPACES_REGION}.digitaloceanspaces.com/"
+SPACES_URL = f"https://{SPACES_BUCKET}.{SPACES_REGION}.digitaloceanspaces.com/"
 SPACES_ENDPOINT = f"https://{SPACES_REGION}.digitaloceanspaces.com"
 
 if len(sys.argv) > 1:
@@ -154,15 +153,15 @@ def write_kml(points, filename=None):
         pnt.altitudemode = simplekml.AltitudeMode.absolute
     kml.save(filename)
     # Upload to DigitalOcean Spaces
-    upload_to_s3(filename, SPACES_BUCKET, "tracker.kml")
+    upload_to_space(filename, SPACES_BUCKET, "tracker.kml")
 
 def write_networklink_kml(link_filename=None, refresh_interval=5):
     """
     Write a KML NetworkLink referencing another KML file for live updates (e.g., in Google Earth).
-    This version points to the DigitalOcean Spaces bucket.
+    This points to the DigitalOcean Spaces bucket.
     """
     # Always use the Spaces URL for tracker.kml
-    s3_href = f"{S3_URL}tracker.kml"
+    spaces_href = f"{SPACES_URL}tracker.kml"
     if link_filename is None:
         link_filename = os.path.join(os.path.dirname(__file__), "tracker_link.kml")
     kml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -170,7 +169,7 @@ def write_networklink_kml(link_filename=None, refresh_interval=5):
   <NetworkLink>
     <name>Live Balloon Tracker</name>
     <Link>
-      <href>{s3_href}</href>
+      <href>{spaces_href}</href>
       <refreshMode>onInterval</refreshMode>
       <refreshInterval>{refresh_interval}</refreshInterval>
     </Link>
@@ -180,7 +179,7 @@ def write_networklink_kml(link_filename=None, refresh_interval=5):
     with open(link_filename, "w", encoding="utf-8") as f:
         f.write(kml_content)
     # Upload to DigitalOcean Spaces
-    upload_to_s3(link_filename, SPACES_BUCKET, "tracker_link.kml")
+    upload_to_space(link_filename, SPACES_BUCKET, "tracker_link.kml")
 
 # Clear the KML file at startup so only new, filtered positions are shown
 def clear_kml(filename=None):
@@ -200,7 +199,7 @@ def process_aprs_packet(packet):
         lat, lon, alt, from_call = parse_aprs(packet)
         if lat is not None and lon is not None:
             # Check if filtering is disabled
-            if CALLSIGN_FILTER.upper() == "NOFILTER":
+            if CALLSIGN_FILTER and CALLSIGN_FILTER.upper() == "NOFILTER":
                 # No filtering - accept all packets
                 timestamp = get_eastern_time_str()
                 print(f"Accepted: {lat}, {lon}, {alt}, {from_call}, {timestamp}")
@@ -223,15 +222,15 @@ def process_aprs_packet(packet):
         print(f"Received malformed APRS packet (no body): {packet}")
         print(f"Raw packet: {repr(packet)}")
 
-def upload_to_s3(local_file, bucket, s3_key):
+def upload_to_space(local_file, bucket, spaces_key):
     """
     Upload a local file to DigitalOcean Spaces using boto3.
     """
-    s3 = boto3.client('s3',
+    space = boto3.client('space',
                       endpoint_url=SPACES_ENDPOINT,
                       aws_access_key_id=SPACES_ACCESS_KEY,
                       aws_secret_access_key=SPACES_SECRET_KEY)
-    s3.upload_file(local_file, bucket, s3_key, 
+    space.upload_file(local_file, bucket, spaces_key,
                    ExtraArgs={'ACL': 'public-read'})
 
 def main(host='localhost', port=8001):
@@ -239,12 +238,12 @@ def main(host='localhost', port=8001):
     clear_kml()  # <-- Clear KML file before starting
     write_networklink_kml()
     # Print clickable file URL for tracker_link.kml
-    print("To view the data in Google Earth, download the KML file here: https://leffell-space-tracker.s3.us-east-2.amazonaws.com/tracker_link.kml") #pylint: disable=line-too-long
     print(f"Connecting to KISS server on {host}:{port}...")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         sock.connect((host, port))
         print("Connected. Waiting for APRS packets...")
+        print(f"To view the data in Google Earth, download the KML file here: {SPACES_URL}") #pylint: disable=line-too-long
         buffer = b''
         while True:
             data = sock.recv(1024)
