@@ -56,6 +56,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+    
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -80,13 +84,14 @@ jobs:
         id: date
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Get merged PR for the commit
         id: get_pr
         run: |
-          PR_BODY=$(gh pr view ${{ github.sha }} --json body -q '.body' || echo "")
+          PR_JSON=$(gh pr list --state merged --search "${{ github.sha }}" --json number,body -q '.[0]')
+          if [ -z "$PR_JSON" ]; then
+          echo "PR_BODY=No matching PR found for this commit." >> $GITHUB_ENV
+          else
+          PR_BODY=$(echo "$PR_JSON" | jq -r '.body')
           echo "PR_BODY<<EOF" >> $GITHUB_ENV
           echo "$PR_BODY" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
