@@ -14,24 +14,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Create .aws directory in home
-      run: mkdir -p ~/.aws
-    
-    - name: Create credentials & config files
-      env:
-        AWS_CREDENTIALS: ${{ secrets.AWS_CREDENTIALS }}
-      run: |
-        echo "$AWS_CREDENTIALS" > ~/.aws/credentials
-        echo "[default]" > ~/.aws/config
-        echo "region = us-east-2" >> ~/.aws/config
-    
-    - name: Verify credentials setup
-      run: |
-        echo "Checking if credentials files exist:"
-        ls -la ~/.aws/
-        echo "Credentials file exists: $(test -f ~/.aws/credentials && echo 'YES' || echo 'NO')"
-        echo "Config file exists: $(test -f ~/.aws/config && echo 'YES' || echo 'NO')"
-
     - name: Set up Python 3.13
       uses: actions/setup-python@v4
       with:

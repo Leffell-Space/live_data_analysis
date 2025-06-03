@@ -19,6 +19,16 @@ import boto3
 
 dotenv.load_dotenv()  # Load environment variables from .env file if it exists
 
+# Define DigitalOcean Spaces configuration
+SPACES_BUCKET = os.getenv("SPACES_BUCKET")
+SPACES_REGION = os.getenv("SPACES_REGION")
+SPACES_ACCESS_KEY = os.getenv("SPACES_ACCESS_KEY")
+SPACES_SECRET_KEY = os.getenv("SPACES_SECRET_KEY")
+
+# Build the public URL for your space
+S3_URL = f"https://{SPACES_BUCKET}.{SPACES_REGION}.digitaloceanspaces.com/"
+SPACES_ENDPOINT = f"https://{SPACES_REGION}.digitaloceanspaces.com"
+
 if len(sys.argv) > 1:
     CALLSIGN = sys.argv[1]
     print(f"CALLSIGN = {CALLSIGN}")
@@ -143,16 +153,16 @@ def write_kml(points, filename=None):
         pnt = kml.newpoint(name="Received at " + timestamp, coords=[(lon, lat, alt if alt else 0)])
         pnt.altitudemode = simplekml.AltitudeMode.absolute
     kml.save(filename)
-    # Upload to S3
-    upload_to_s3(filename, "leffell-space-tracker", "tracker.kml")
+    # Upload to DigitalOcean Spaces
+    upload_to_s3(filename, SPACES_BUCKET, "tracker.kml")
 
 def write_networklink_kml(link_filename=None, refresh_interval=5):
     """
     Write a KML NetworkLink referencing another KML file for live updates (e.g., in Google Earth).
-    This version points to the S3 bucket.
+    This version points to the DigitalOcean Spaces bucket.
     """
-    # Always use the S3 URL for tracker.kml
-    s3_href = "https://leffell-space-tracker.s3.amazonaws.com/tracker.kml"
+    # Always use the Spaces URL for tracker.kml
+    s3_href = f"{S3_URL}tracker.kml"
     if link_filename is None:
         link_filename = os.path.join(os.path.dirname(__file__), "tracker_link.kml")
     kml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -169,8 +179,8 @@ def write_networklink_kml(link_filename=None, refresh_interval=5):
 """
     with open(link_filename, "w", encoding="utf-8") as f:
         f.write(kml_content)
-    # Upload to S3
-    upload_to_s3(link_filename, "leffell-space-tracker", "tracker_link.kml")
+    # Upload to DigitalOcean Spaces
+    upload_to_s3(link_filename, SPACES_BUCKET, "tracker_link.kml")
 
 # Clear the KML file at startup so only new, filtered positions are shown
 def clear_kml(filename=None):
@@ -215,11 +225,14 @@ def process_aprs_packet(packet):
 
 def upload_to_s3(local_file, bucket, s3_key):
     """
-    Upload a local file to an S3 bucket.
+    Upload a local file to DigitalOcean Spaces using boto3.
     """
-
-    s3 = boto3.client('s3')
-    s3.upload_file(local_file, bucket, s3_key)
+    s3 = boto3.client('s3',
+                      endpoint_url=SPACES_ENDPOINT,
+                      aws_access_key_id=SPACES_ACCESS_KEY,
+                      aws_secret_access_key=SPACES_SECRET_KEY)
+    s3.upload_file(local_file, bucket, s3_key, 
+                   ExtraArgs={'ACL': 'public-read'})
 
 def main(host='localhost', port=8001):
     '''Always create/update the NetworkLink KML at startup'''
