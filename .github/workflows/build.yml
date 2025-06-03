@@ -69,6 +69,9 @@ jobs:
           cp release-assets/get_from_direwolf-macos/get_from_direwolf release-files/get_from_direwolf-macos
           echo "Reorganized files:"
           ls -la release-files/
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
       - name: Generate release tag
         id: tag
         run: |
@@ -84,7 +87,7 @@ jobs:
           body: |
             ## Release Notes
             **Built from commit:** ${{ github.sha }}
-            **Build date:** ${{ github.event.head_commit.timestamp }}
+            **Build date:** ${{ steps.date.outputs.date }}
             ### Changes
             - Automated build from latest main branch
             ### Files
