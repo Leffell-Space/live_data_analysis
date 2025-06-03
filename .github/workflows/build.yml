@@ -84,7 +84,7 @@ jobs:
           body: |
             ## Release Notes
             **Built from commit:** ${{ github.sha }}
-            **Build date:** $(date +'%Y-%m-%d %H:%M:%S UTC')
+            **Build date:** ${{ github.event.head_commit.timestamp }}
             ### Changes
             - Automated build from latest main branch
             ### Files
