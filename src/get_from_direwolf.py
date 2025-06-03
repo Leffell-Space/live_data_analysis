@@ -7,7 +7,6 @@ Also creates/updates tracker_link.kml for Google Earth auto-refresh.
 
 import socket
 import os
-import urllib.parse
 import string
 import datetime
 import sys
@@ -16,13 +15,19 @@ import aprslib
 import simplekml
 import dotenv #env variables
 import pytz  #timezones
+import boto3
 
 dotenv.load_dotenv()  # Load environment variables from .env file if it exists
+
+#define s3 bucket name, region, and urls
+S3_BUCKET = os.getenv("S3BUCKET")
+S3_REGION = os.getenv("S3REGION")
+S3_URL = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/"
 
 if len(sys.argv) > 1:
     CALLSIGN = sys.argv[1]
     print(f"CALLSIGN = {CALLSIGN}")
-if not os.getenv("CALLSIGN") is None:
+elif os.getenv("CALLSIGN") is not None:
     dotenv.load_dotenv()
     CALLSIGN = os.getenv("CALLSIGN")
     print(f"CALLSIGN = {CALLSIGN}")
@@ -143,24 +148,24 @@ def write_kml(points, filename=None):
         pnt = kml.newpoint(name="Received at " + timestamp, coords=[(lon, lat, alt if alt else 0)])
         pnt.altitudemode = simplekml.AltitudeMode.absolute
     kml.save(filename)
+    # Upload to S3
+    upload_to_s3(filename, S3_BUCKET, "tracker.kml")
 
-def write_networklink_kml(target_path=None, link_filename=None, refresh_interval=5):
+def write_networklink_kml(link_filename=None, refresh_interval=5):
     """
     Write a KML NetworkLink referencing another KML file for live updates (e.g., in Google Earth).
-
+    This version points to the S3 bucket.
     """
-    if target_path is None:
-        target_path = os.path.join(os.path.dirname(__file__), "tracker.kml")
+    # Always use the S3 URL for tracker.kml
+    s3_href = f"{S3_URL}tracker.kml"
     if link_filename is None:
         link_filename = os.path.join(os.path.dirname(__file__), "tracker_link.kml")
-    abs_path = os.path.abspath(target_path)
-    href = 'file:///' + urllib.parse.quote(abs_path.replace("\\", "/"))
     kml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <NetworkLink>
     <name>Live Balloon Tracker</name>
     <Link>
-      <href>{href}</href>
+      <href>{s3_href}</href>
       <refreshMode>onInterval</refreshMode>
       <refreshInterval>{refresh_interval}</refreshInterval>
     </Link>
@@ -169,6 +174,8 @@ def write_networklink_kml(target_path=None, link_filename=None, refresh_interval
 """
     with open(link_filename, "w", encoding="utf-8") as f:
         f.write(kml_content)
+    # Upload to S3
+    upload_to_s3(link_filename, S3_BUCKET, "tracker_link.kml")
 
 # Clear the KML file at startup so only new, filtered positions are shown
 def clear_kml(filename=None):
@@ -187,30 +194,44 @@ def process_aprs_packet(packet):
     if packet and ':' in packet:
         lat, lon, alt, from_call = parse_aprs(packet)
         if lat is not None and lon is not None:
-            # Filter by base callsign (ignore SSID, case-insensitive)
-            base_call = from_call.split('-')[0].strip().upper() if from_call else None
-            filter_base = CALLSIGN_FILTER.split('-', maxsplit=1)[0].strip().upper() if CALLSIGN_FILTER else None #pylint: disable=line-too-long
-            if filter_base is None or (base_call and base_call == filter_base):
+            # Check if filtering is disabled
+            if CALLSIGN_FILTER.upper() == "NOFILTER":
+                # No filtering - accept all packets
                 timestamp = get_eastern_time_str()
                 print(f"Accepted: {lat}, {lon}, {alt}, {from_call}, {timestamp}")
                 positions.append((lat, lon, alt, timestamp))
                 write_kml(positions)
             else:
-                print(f"Ignored packet from {from_call} (filter: {CALLSIGN_FILTER})")
+                # Filter by base callsign (ignore SSID, case-insensitive)
+                base_call = from_call.split('-')[0].strip().upper() if from_call else None
+                filter_base = CALLSIGN_FILTER.split('-', maxsplit=1)[0].strip().upper() if CALLSIGN_FILTER else None #pylint: disable=line-too-long
+                if filter_base is None or (base_call and base_call == filter_base):
+                    timestamp = get_eastern_time_str()
+                    print(f"Accepted: {lat}, {lon}, {alt}, {from_call}, {timestamp}")
+                    positions.append((lat, lon, alt, timestamp))
+                    write_kml(positions)
+                else:
+                    print(f"Ignored packet from {from_call} (filter: {CALLSIGN_FILTER})")
         else:
             print(f"Received APRS packet but could not parse position: {packet}")
     elif packet:
         print(f"Received malformed APRS packet (no body): {packet}")
         print(f"Raw packet: {repr(packet)}")
 
+def upload_to_s3(local_file, bucket, s3_key):
+    """
+    Upload a local file to an S3 bucket.
+    """
+
+    s3 = boto3.client('s3')
+    s3.upload_file(local_file, bucket, s3_key)
+
 def main(host='localhost', port=8001):
     '''Always create/update the NetworkLink KML at startup'''
     clear_kml()  # <-- Clear KML file before starting
     write_networklink_kml()
     # Print clickable file URL for tracker_link.kml
-    abs_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "tracker_link.kml"))
-    file_url = 'file:///' + urllib.parse.quote(abs_path.replace("\\", "/"))
-    print(f"NetworkLink KML created: {file_url}")
+    print(f"To view the data in Google Earth, download the KML file here: {S3_URL}tracker_link.kml") #pylint: disable=line-too-long
     print(f"Connecting to KISS server on {host}:{port}...")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:

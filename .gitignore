@@ -211,3 +211,5 @@ src/dump_port_8001_to_file.py
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode
+
+.aws/credentials
