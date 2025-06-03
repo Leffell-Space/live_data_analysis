@@ -210,4 +210,10 @@ src/dump_port_8001_to_file.py
 .history
 .ionide
 
+<<<<<<< HEAD
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode
+=======
+# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode
+
+.aws/credentials
+>>>>>>> 9b64d46f68e1444f0d5566f6d0a15527145c5dce
