@@ -22,7 +22,7 @@ dotenv.load_dotenv()  # Load environment variables from .env file if it exists
 if len(sys.argv) > 1:
     CALLSIGN = sys.argv[1]
     print(f"CALLSIGN = {CALLSIGN}")
-elif not os.getenv("CALLSIGN") is None:
+elif os.getenv("CALLSIGN") is not None:
     dotenv.load_dotenv()
     CALLSIGN = os.getenv("CALLSIGN")
     print(f"CALLSIGN = {CALLSIGN}")
