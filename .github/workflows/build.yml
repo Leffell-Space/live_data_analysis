@@ -56,22 +56,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-assets
-      - name: List downloaded files (debug)
-        run: |
-          echo "Downloaded files:"
-          find release-assets -type f -ls
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Debug artifact directories
-        run: |
-          echo "Listing contents of release-assets:"
-          ls -l release-assets
-          echo "Listing contents of release-assets/get_from_direwolf-windows.exe:"
-          ls -l release-assets/get_from_direwolf-windows.exe/
-          echo "Listing contents of release-assets/get_from_direwolf-linux:"
-          ls -l release-assets/get_from_direwolf-linux/
-          echo "Listing contents of release-assets/get_from_direwolf-macos:"
-          ls -l release-assets/get_from_direwolf-macos/
       - name: Reorganize files for release
         run: |
           # Move files to the expected locations for the release with proper naming
@@ -84,6 +68,8 @@ jobs:
       - name: Get current date
         id: date
         run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Get merged PR for the commit
         id: get_pr
         run: |
