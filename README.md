@@ -1,7 +1,5 @@
 # Live Balloon Tracking
 
-## Overview
-
 This project provides tools for receiving, decoding, and visualizing APRS (Automatic Packet Reporting System) data in real time. It supports both online APRS-IS sources and Direwolf, and can output position data to KML files for visualization in Google Earth.
 
 ## Features
