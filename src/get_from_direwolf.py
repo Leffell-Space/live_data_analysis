@@ -20,6 +20,9 @@ import boto3
 dotenv.load_dotenv()  # Load environment variables from .env file if it exists
 
 #define s3 bucket name, region, and urls
+S3_BUCKET = os.getenv("S3BUCKET")
+S3_REGION = os.getenv("AWS_REGION")
+S3_URL = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/"
 
 if len(sys.argv) > 1:
     CALLSIGN = sys.argv[1]
@@ -146,7 +149,7 @@ def write_kml(points, filename=None):
         pnt.altitudemode = simplekml.AltitudeMode.absolute
     kml.save(filename)
     # Upload to S3
-    upload_to_s3(filename, "leffell-space-tracker", "tracker.kml")
+    upload_to_s3(filename, S3_BUCKET, "tracker.kml")
 
 def write_networklink_kml(link_filename=None, refresh_interval=5):
     """
@@ -154,7 +157,7 @@ def write_networklink_kml(link_filename=None, refresh_interval=5):
     This version points to the S3 bucket.
     """
     # Always use the S3 URL for tracker.kml
-    s3_href = "https://leffell-space-tracker.s3.us-east-2.amazonaws.com/tracker.kml"
+    s3_href = f"{S3_URL}tracker.kml"
     if link_filename is None:
         link_filename = os.path.join(os.path.dirname(__file__), "tracker_link.kml")
     kml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -172,7 +175,7 @@ def write_networklink_kml(link_filename=None, refresh_interval=5):
     with open(link_filename, "w", encoding="utf-8") as f:
         f.write(kml_content)
     # Upload to S3
-    upload_to_s3(link_filename, "leffell-space-tracker", "tracker_link.kml")
+    upload_to_s3(link_filename, S3_BUCKET, "tracker_link.kml")
 
 # Clear the KML file at startup so only new, filtered positions are shown
 def clear_kml(filename=None):
@@ -228,7 +231,7 @@ def main(host='localhost', port=8001):
     clear_kml()  # <-- Clear KML file before starting
     write_networklink_kml()
     # Print clickable file URL for tracker_link.kml
-    print("To view the data in Google Earth, download the KML file here: https://leffell-space-tracker.s3.us-east-2.amazonaws.com/tracker_link.kml") #pylint: disable=line-too-long
+    print(f"To view the data in Google Earth, download the KML file here: {S3_URL}tracker_link.kml") #pylint: disable=line-too-long
     print(f"Connecting to KISS server on {host}:{port}...")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
