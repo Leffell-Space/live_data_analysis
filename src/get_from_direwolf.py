@@ -152,7 +152,7 @@ def write_networklink_kml(link_filename=None, refresh_interval=5):
     This version points to the S3 bucket.
     """
     # Always use the S3 URL for tracker.kml
-    s3_href = "https://leffell-space-tracker.s3.amazonaws.com/tracker.kml"
+    s3_href = "https://leffell-space-tracker.s3.us-east-2.amazonaws.com/tracker.kml"
     if link_filename is None:
         link_filename = os.path.join(os.path.dirname(__file__), "tracker_link.kml")
     kml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
