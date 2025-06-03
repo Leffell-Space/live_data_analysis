@@ -9,7 +9,6 @@ import os
 import string
 import datetime
 import sys
-import sys
 import re
 import aprslib
 import simplekml
