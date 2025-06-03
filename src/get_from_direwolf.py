@@ -21,7 +21,7 @@ dotenv.load_dotenv()  # Load environment variables from .env file if it exists
 
 #define s3 bucket name, region, and urls
 S3_BUCKET = os.getenv("S3BUCKET")
-S3_REGION = os.getenv("AWS_REGION")
+S3_REGION = os.getenv("S3REGION")
 S3_URL = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/"
 
 if len(sys.argv) > 1:
