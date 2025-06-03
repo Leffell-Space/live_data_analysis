@@ -18,8 +18,8 @@ jobs:
         python-version: '3.13'
         
     - name: Set up .env file
-      run: 
-        echo ${{secrets.OUR_ENV}} > .env 
+      run: |
+        printf "%s" "${{ secrets.OUR_ENV }}" > .env
         
     - name: Install dependencies
       run: |
