@@ -6,6 +6,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+
 jobs:
   build-multi-platform:
     strategy:
@@ -14,39 +15,42 @@ jobs:
         include:
           - os: windows-latest
             artifact_name: get_from_direwolf-windows.exe
-            asset_name: get_from_direwolf.exe
+            asset_path: dist/get_from_direwolf.exe
           - os: ubuntu-latest
             artifact_name: get_from_direwolf-linux
-            asset_name: get_from_direwolf-linux
+            asset_path: dist/get_from_direwolf
           - os: macos-latest
             artifact_name: get_from_direwolf-macos
-            asset_name: get_from_direwolf-macos
+            asset_path: dist/get_from_direwolf
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Install Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
           architecture: 'x64'
+
       - name: Install requirements
         run: |
           pip install -r src/requirements.txt
           pip install pyinstaller
-      - name: Run PyInstaller (Windows)
-        if: matrix.os == 'windows-latest'
+
+      - name: Run PyInstaller
         run: |
           python -m PyInstaller --onefile --name get_from_direwolf src/get_from_direwolf.py
-      - name: Run PyInstaller (Unix)
-        if: matrix.os != 'windows-latest'
-        run: |
-          python -m PyInstaller --onefile --name get_from_direwolf src/get_from_direwolf.py
+
+      - name: Check build output
+        run: ls -l dist/
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: dist/get_from_direwolf${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+          path: ${{ matrix.asset_path }}
+
   release:
     needs: build-multi-platform
     runs-on: ubuntu-latest
@@ -56,20 +60,29 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-assets
+
+      - name: List downloaded artifacts and contents
+        run: |
+          echo "Artifacts in release-assets:"
+          ls -R release-assets
+
       - name: Reorganize files for release
         run: |
-          # Move files to the expected locations for the release with proper naming
+          set -e
           mkdir -p release-files
           cp release-assets/get_from_direwolf-windows.exe/get_from_direwolf.exe release-files/get_from_direwolf-windows.exe
           cp release-assets/get_from_direwolf-linux/get_from_direwolf release-files/get_from_direwolf-linux
           cp release-assets/get_from_direwolf-macos/get_from_direwolf release-files/get_from_direwolf-macos
           echo "Reorganized files:"
           ls -la release-files/
+
       - name: Get current date
         id: date
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Get merged PR for the commit
         id: get_pr
         run: |
@@ -79,12 +92,14 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Generate release tag
         id: tag
         run: |
           TAG="v$(date +'%Y.%m.%d')-$(echo ${{ github.sha }} | cut -c1-7)"
           echo "tag=$TAG" >> $GITHUB_ENV
           echo "Generated tag: $TAG"
+
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
