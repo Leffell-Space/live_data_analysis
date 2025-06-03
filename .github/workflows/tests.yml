@@ -19,7 +19,7 @@ jobs:
         
     - name: Set up .env file
       run: 
-        cat ${{secrets.OUR_ENV}} > .env 
+        echo ${{secrets.OUR_ENV}} > .env 
         
     - name: Install dependencies
       run: |
