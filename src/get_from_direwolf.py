@@ -19,6 +19,8 @@ import boto3
 
 dotenv.load_dotenv()  # Load environment variables from .env file if it exists
 
+#define s3 bucket name, region, and urls
+
 if len(sys.argv) > 1:
     CALLSIGN = sys.argv[1]
     print(f"CALLSIGN = {CALLSIGN}")
