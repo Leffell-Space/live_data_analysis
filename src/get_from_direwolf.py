@@ -226,7 +226,7 @@ def upload_to_space(local_file, bucket, spaces_key):
     """
     Upload a local file to DigitalOcean Spaces using boto3.
     """
-    space = boto3.client('space',
+    space = boto3.client('s3',
                       endpoint_url=SPACES_ENDPOINT,
                       aws_access_key_id=SPACES_ACCESS_KEY,
                       aws_secret_access_key=SPACES_SECRET_KEY)
