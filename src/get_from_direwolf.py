@@ -151,6 +151,13 @@ def write_kml(points, filename=None):
     for lat, lon, alt, timestamp in points:
         pnt = kml.newpoint(name="Received at " + timestamp, coords=[(lon, lat, alt if alt else 0)])
         pnt.altitudemode = simplekml.AltitudeMode.absolute
+    # Add a LineString connecting all points
+    if points:
+        line_coords = [(lon, lat, alt if alt else 0) for lat, lon, alt, _ in points]
+        linestring = kml.newlinestring(name="Track", coords=line_coords)
+        linestring.altitudemode = simplekml.AltitudeMode.absolute
+        linestring.style.linestyle.width = 3
+        linestring.style.linestyle.color = simplekml.Color.red
     kml.save(filename)
     # Upload to DigitalOcean Spaces
     upload_to_space(filename, SPACES_BUCKET, "tracker.kml")
