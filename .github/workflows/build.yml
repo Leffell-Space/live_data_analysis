@@ -96,7 +96,7 @@ jobs:
           echo "$PR_BODY" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
           fi
-          PR_BODY=$(echo "$PR_BODY" | sed 's/pull request/release/g')
+          PR_BODY=$(echo "$PR_BODY" | sed 's/pull request/release/gi')
           echo "PR_BODY<<EOF" >> $GITHUB_ENV
           echo "$PR_BODY" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
