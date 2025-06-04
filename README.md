@@ -12,13 +12,6 @@ This project provides tools for receiving, decoding, and visualizing APRS (Autom
 ## Requirements
 
 - Python 3.13.3
-- aprslib 0.7.2
-- dotenv 1.1.0
-- pytz 2025.2
-- simplekml 1.3.6
-- pyinstaller 6.11.1
-- pylint 3.3.7
-- boto3 1.38.27
   
 The requirements.txt file is found in:
 ```txt
